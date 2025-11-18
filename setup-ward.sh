@@ -190,38 +190,125 @@ EOF
     print_status "Example configuration created at $SAMPLE_WARD"
 fi
 
-# Installation complete
-echo ""
-echo -e "${GREEN}🎉 Ward Security System installed locally!${NC}"
-echo ""
-echo -e "${BLUE}🔒 Security Notice:${NC}"
-echo "Ward is installed locally only - no global system changes made"
-echo "This prevents accidental global access and maintains security boundaries"
-echo ""
-echo -e "${BLUE}Next steps:${NC}"
-echo "1. Add local bin to PATH (optional, for convenience only):"
-echo -e "   ${YELLOW}echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> \$HOME/.bashrc${NC}"
-echo -e "   ${YELLOW}source \$HOME/.bashrc${NC}"
-echo ""
-echo "2. Or use Ward directly from its installation:"
-echo -e "   ${YELLOW}$INSTALL_DIR/ward --version${NC}"
-echo ""
-echo "3. Check system status:"
-echo -e "   ${YELLOW}$INSTALL_DIR/ward status${NC}"
-echo ""
-echo "4. Initialize your first project:"
-echo -e "   ${YELLOW}mkdir my-secure-project && cd my-secure-project${NC}"
-echo -e "   ${YELLOW}$INSTALL_DIR/ward init${NC}"
-echo ""
-echo "5. For more help:"
-echo -e "   ${YELLOW}$INSTALL_DIR/ward help${NC}"
-echo ""
-echo "6. 🤖 AI Assistant Integration (MCP):"
-echo -e "   ${YELLOW}# Test MCP server${NC}"
-echo -e "   ${YELLOW}python3 $INSTALL_DIR/mcp/mcp_server.py${NC}"
-echo ""
-echo -e "   ${YELLOW}# Configure Claude Desktop (macOS)${NC}"
-echo -e "   ${YELLOW}./configure-claude-desktop.sh${NC}"
+# Function to add UV tools PATH to shell configuration
+add_uv_tools_path() {
+    local uv_tools_path="$HOME/.local/share/uv/tools/ward-security/bin"
+    local shell_rc=""
+
+    # Detect shell and appropriate config file
+    if [ -n "$ZSH_VERSION" ] || [ "$SHELL" = "/bin/zsh" ]; then
+        shell_rc="$HOME/.zshrc"
+    elif [ -n "$BASH_VERSION" ] || [ "$SHELL" = "/bin/bash" ]; then
+        shell_rc="$HOME/.bashrc"
+    fi
+
+    if [ -n "$shell_rc" ] && [ -f "$shell_rc" ]; then
+        # Check if UV tools path is already in the config
+        if ! grep -q "$uv_tools_path" "$shell_rc" 2>/dev/null; then
+            echo "" >> "$shell_rc"
+            echo "# UV tools path for Ward Security System" >> "$shell_rc"
+            echo "export PATH=\"$uv_tools_path:\$PATH\"" >> "$shell_rc"
+            print_status "UV tools path added to $shell_rc"
+        else
+            print_status "UV tools path already configured in $shell_rc"
+        fi
+    fi
+}
+
+# Function to install Ward with UV (preferred method)
+install_with_uv() {
+    if command -v uv >/dev/null 2>&1; then
+        print_status "Installing Ward with UV (recommended)..."
+
+        # Install Ward with MCP support
+        if uv tool install "git+https://github.com/yamonco/ward.git[mcp]" 2>/dev/null; then
+            print_status "Ward installed successfully with UV!"
+
+            # Add UV tools path to shell configuration
+            add_uv_tools_path
+
+            # Configure Claude MCP automatically
+            if command -v uvx >/dev/null 2>&1; then
+                print_status "Configuring Claude MCP integration..."
+                if uvx --help >/dev/null 2>&1; then
+                    # Use uvx to run ward-mcp
+                    if uvx "git+https://github.com/yamonco/ward.git" ward-mcp add --target claude-code 2>/dev/null; then
+                        print_status "Claude MCP integration configured!"
+                    else
+                        print_warning "Claude MCP configuration failed. Run manually: uvx git+https://github.com/yamonco/ward.git ward-mcp add"
+                    fi
+                fi
+            fi
+
+            return 0
+        else
+            print_warning "UV installation failed, falling back to local installation"
+            return 1
+        fi
+    else
+        print_warning "UV not found. Install UV for better experience: https://docs.astral.sh/uv/"
+        return 1
+    fi
+}
+
+# Try UV installation first, fallback to local
+if install_with_uv; then
+    echo ""
+    echo -e "${GREEN}🎉 Ward Security System installed with UV!${NC}"
+    echo ""
+    echo -e "${BLUE}🔄 Next steps:${NC}"
+    echo "1. Reload your shell or run:"
+    echo -e "   ${YELLOW}source ~/.${SHELL##*/}rc${NC}"
+    echo ""
+    echo "2. Verify installation:"
+    echo -e "   ${YELLOW}ward --version${NC}"
+    echo -e "   ${YELLOW}uv tool list | grep ward${NC}"
+    echo ""
+    echo "3. Initialize your first project:"
+    echo -e "   ${YELLOW}mkdir my-secure-project && cd my-secure-project${NC}"
+    echo -e "   ${YELLOW}ward init${NC}"
+    echo ""
+    echo "4. 🤖 AI Assistant Integration (MCP):"
+    echo -e "   ${YELLOW}# Already configured! Restart Claude Code to use Ward tools${NC}"
+    echo ""
+    echo -e "${BLUE}Management commands:${NC}"
+    echo -e "   ${YELLOW}uv tool install --force git+https://github.com/yamonco/ward.git  # Update${NC}"
+    echo -e "   ${YELLOW}uv tool uninstall ward-security  # Remove${NC}"
+else
+    # Fallback to local installation (existing code)
+    echo ""
+    echo -e "${GREEN}🎉 Ward Security System installed locally!${NC}"
+    echo ""
+    echo -e "${BLUE}🔒 Security Notice:${NC}"
+    echo "Ward is installed locally only - no global system changes made"
+    echo "This prevents accidental global access and maintains security boundaries"
+    echo ""
+    echo -e "${BLUE}Next steps:${NC}"
+    echo "1. Add local bin to PATH (optional, for convenience only):"
+    echo -e "   ${YELLOW}echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> \$HOME/.bashrc${NC}"
+    echo -e "   ${YELLOW}source \$HOME/.bashrc${NC}"
+    echo ""
+    echo "2. Or use Ward directly from its installation:"
+    echo -e "   ${YELLOW}$INSTALL_DIR/ward --version${NC}"
+    echo ""
+    echo "3. Check system status:"
+    echo -e "   ${YELLOW}$INSTALL_DIR/ward status${NC}"
+    echo ""
+    echo "4. Initialize your first project:"
+    echo -e "   ${YELLOW}mkdir my-secure-project && cd my-secure-project${NC}"
+    echo -e "   ${YELLOW}$INSTALL_DIR/ward init${NC}"
+    echo ""
+    echo "5. For more help:"
+    echo -e "   ${YELLOW}$INSTALL_DIR/ward help${NC}"
+    echo ""
+    echo "6. 🤖 AI Assistant Integration (MCP):"
+    echo -e "   ${YELLOW}# Test MCP server${NC}"
+    echo -e "   ${YELLOW}python3 $INSTALL_DIR/mcp/mcp_server.py${NC}"
+    echo ""
+    echo -e "   ${YELLOW}# Configure Claude Desktop (macOS)${NC}"
+    echo -e "   ${YELLOW}./configure-claude-desktop.sh${NC}"
+fi
+
 echo ""
 echo -e "${BLUE}Documentation:${NC} https://github.com/yamonco/ward#readme"
 echo -e "${BLUE}Issues:${NC} https://github.com/yamonco/ward/issues"
