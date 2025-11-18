@@ -79,11 +79,11 @@ install_ward() {
     # Prefer UVX if available
     if command -v uvx >/dev/null 2>&1; then
         info "Using UVX for installation..."
-        install_cmd="uvx --with ward-security[mcp]"
+        install_cmd="uv tool install --from git+https://github.com/yamonco/ward.git"
         success "UVX will automatically install Ward with MCP support"
     else
         info "Using pip for installation..."
-        install_cmd="pip3 install --user ward-security[mcp]"
+        install_cmd="pip3 install git+https://github.com/yamonco/ward.git"
     fi
 
     echo
@@ -170,7 +170,7 @@ if 'mcpServers' not in config:
 # Add Ward MCP server
 config['mcpServers']['ward-security'] = {
     'command': 'uvx' if command -v uvx >/dev/null 2>&1 else 'ward-mcp-server',
-    'args': ['ward-security[mcp]'] if command -v uvx >/dev/null 2>&1 else [],
+    'args': ['--from', 'git+https://github.com/yamonco/ward.git', 'python', '-m', 'ward_security.mcp_server'] if command -v uvx >/dev/null 2>&1 else [],
     'description': 'Ward Security System - AI-powered terminal protection'
 }
 
@@ -184,7 +184,7 @@ with open('$temp_config', 'w') as f:
   "mcpServers": {
     "ward-security": {
       "command": "uvx",
-      "args": ["ward-security[mcp]"],
+      "args": ["--from", "git+https://github.com/yamonco/ward.git", "python", "-m", "ward_security.mcp_server"],
       "description": "Ward Security System - AI-powered terminal protection"
     }
   }
@@ -263,11 +263,11 @@ show_next_steps() {
 
     if command -v uvx >/dev/null 2>&1; then
         info "🔍 Management with UVX:"
-        echo "• Update: uvx --upgrade ward-security[mcp]"
-        echo "• Remove: uvx --uninstall ward-security[mcp]"
+        echo "• Update: uv tool install --force --from git+https://github.com/yamonco/ward.git"
+        echo "• Remove: uv tool uninstall ward"
     else
         info "🔍 Management with pip:"
-        echo "• Update: pip install --upgrade ward-security[mcp]"
+        echo "• Update: pip install --upgrade git+https://github.com/yamonco/ward.git"
         echo "• Remove: pip uninstall ward-security"
     fi
 }
