@@ -590,5 +590,10 @@ def info():
     click.echo("  4. Enable MCP extension in settings")
 
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for ward-mcp command"""
     cli()
+
+
+if __name__ == "__main__":
+    main()
