@@ -1,0 +1,5 @@
+# GitHub Sponsors configuration for yamonco/ward
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+github: yamonco
+custom: ["https://github.com/sponsors/yamonco"]

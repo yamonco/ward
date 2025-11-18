@@ -229,6 +229,19 @@ pytest tests/
 
 Ward는 [yamonco](https://github.com/yamonco)에서 개발하고 유지보수하는 오픈소스 프로젝트입니다.
 
+## ❤️ 스폰서
+
+이 프로젝트가 도움이 되셨다면 GitHub Sponsors를 통해 지원해주세요:
+
+[![Sponsor yamonco](https://img.shields.io/github/sponsors/yamonco?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sponsors/yamonco)
+
+여러분의 지원은 다음과 같은 곳에 사용됩니다:
+- 🐛 버그 수정 및 유지보수
+- ✨ 새로운 기능 개발
+- 📚 문서 개선
+- 🔧 인프라 비용
+- 🌍 커뮤니티 지원
+
 ---
 
 **🚀 Ward Security System - Protecting your code, empowering your team**
