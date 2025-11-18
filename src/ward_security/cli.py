@@ -12,8 +12,12 @@ from pathlib import Path
 from typing import List, Optional
 
 # Import favorites functionality
-from .favorites import WardFavorites, WardPlanter
-from .indexer import WardIndexer
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
+
+from favorites import WardFavorites, WardPlanter
+from indexer import WardIndexer
 
 class WardCLI:
     """Ward Security Command Line Interface"""
@@ -50,10 +54,10 @@ class WardCLI:
             return 1
 
     def main(self) -> int:
-        """Main CLI entry point"""
+        """Main CLI entry point - simplified interface"""
         parser = argparse.ArgumentParser(
             prog="ward",
-            description="Ward Security System - Enterprise file system protection"
+            description="Ward Security System - AI-powered terminal protection"
         )
 
         parser.add_argument(
@@ -62,57 +66,108 @@ class WardCLI:
             version="Ward Security v2.0.0"
         )
 
-        parser.add_argument(
-            "-v", "--verbose",
-            action="store_true",
-            help="Enable verbose output"
+        # Create subparsers for commands
+        subparsers = parser.add_subparsers(
+            dest="command",
+            title="Commands",
+            description="Available commands",
+            metavar="COMMAND"
         )
 
-        parser.add_argument(
-            "-q", "--quiet",
-            action="store_true",
-            help="Suppress non-error output"
-        )
+        # Core commands
+        subparsers.add_parser("status", help="Show Ward system status")
+        subparsers.add_parser("validate", help="Validate security policies")
 
-        parser.add_argument(
-            "command",
-            nargs="*",
-            help="Ward command and arguments"
-        )
+        # Path analysis
+        check_parser = subparsers.add_parser("check", help="Check security policies for path")
+        check_parser.add_argument("path", nargs="?", default=".", help="Path to check (default: current directory)")
+
+        # MCP integration
+        subparsers.add_parser("mcp-status", help="Check MCP server status")
+        subparsers.add_parser("mcp-test", help="Test MCP server functionality")
+        subparsers.add_parser("configure-claude", help="Configure Claude Desktop integration")
+
+        # Favorites management
+        fav_parser = subparsers.add_parser("favorites", help="Manage favorites")
+        fav_subparsers = fav_parser.add_subparsers(dest="fav_action")
+
+        fav_list = fav_subparsers.add_parser("list", help="List favorites")
+        fav_add = fav_subparsers.add_parser("add", help="Add to favorites")
+        fav_add.add_argument("path", help="Path to add")
+        fav_add.add_argument("description", nargs="*", help="Description")
+        fav_comment = fav_subparsers.add_parser("comment", help="Add comment")
+        fav_comment.add_argument("path", help="Path to comment on")
+        fav_comment.add_argument("comment", help="Comment text")
+        fav_comment.add_argument("author", nargs="?", default="CLI User", help="Comment author")
+
+        # Ward management
+        plant_parser = subparsers.add_parser("plant", help="Plant a Ward (protection)")
+        plant_parser.add_argument("path", help="Path to protect")
+        plant_parser.add_argument("description", nargs="*", help="Description")
+
+        info_parser = subparsers.add_parser("info", help="Get Ward information")
+        info_parser.add_argument("path", help="Path to check")
+
+        # Search and bookmarks
+        search_parser = subparsers.add_parser("search", help="Search through indexed folders")
+        search_parser.add_argument("query", help="Search query")
+        search_parser.add_argument("--in", choices=["all", "name", "files", "directories", "types"], default="all", help="Search scope")
+        search_parser.add_argument("--limit", type=int, default=20, help="Result limit")
+
+        bookmark_parser = subparsers.add_parser("bookmark", help="Manage bookmarks")
+        bookmark_subparsers = bookmark_parser.add_subparsers(dest="bookmark_action")
+
+        bookmark_add = bookmark_subparsers.add_parser("add", help="Add bookmark")
+        bookmark_add.add_argument("path", help="Path to bookmark")
+        bookmark_add.add_argument("--category", default="default", help="Bookmark category")
+        bookmark_add.add_argument("--name", help="Bookmark name")
+        bookmark_add.add_argument("--desc", help="Description")
+        bookmark_add.add_argument("--tags", help="Comma-separated tags")
+
+        bookmark_list = bookmark_subparsers.add_parser("list", help="List bookmarks")
+        bookmark_list.add_argument("--category", help="Filter by category")
+        bookmark_list.add_argument("--tags", help="Filter by tags")
+
+        recent_parser = subparsers.add_parser("recent", help="Show recent access")
+        recent_parser.add_argument("--hours", type=int, default=24, help="Hours to look back")
+        recent_parser.add_argument("--limit", type=int, default=20, help="Result limit")
+
+        # Help and version
+        subparsers.add_parser("help", help="Show this help message")
 
         args = parser.parse_args()
 
-        # Handle special MCP commands
-        if args.command and args.command[0] in ["mcp-status", "mcp-test", "configure-claude", "favorites", "plant-ward", "ward-info", "search", "bookmark", "recent"]:
-            if args.command[0] == "mcp-status":
-                return self.mcp_status()
-            elif args.command[0] == "mcp-test":
-                return self.mcp_test()
-            elif args.command[0] == "configure-claude":
-                return self.configure_claude()
-            elif args.command[0] == "favorites":
-                return self.handle_favorites(args.command[1:])
-            elif args.command[0] == "plant-ward":
-                return self.handle_plant_ward(args.command[1:])
-            elif args.command[0] == "ward-info":
-                return self.handle_ward_info(args.command[1:])
-            elif args.command[0] == "search":
-                return self.handle_search(args.command[1:])
-            elif args.command[0] == "bookmark":
-                return self.handle_bookmark(args.command[1:])
-            elif args.command[0] == "recent":
-                return self.handle_recent(args.command[1:])
-
-        # Convert Python args to bash CLI format
-        ward_args = []
-        if args.verbose:
-            ward_args.append("--verbose")
-        if args.quiet:
-            ward_args.append("--quiet")
-
-        ward_args.extend(args.command)
-
-        return self.run_ward_command(ward_args)
+        # Handle commands
+        if args.command == "status" or args.command is None:
+            return self.run_ward_command(["status"])
+        elif args.command == "validate":
+            return self.run_ward_command(["validate"])
+        elif args.command == "check":
+            return self.run_ward_command(["check", args.path])
+        elif args.command == "mcp-status":
+            return self.mcp_status()
+        elif args.command == "mcp-test":
+            return self.mcp_test()
+        elif args.command == "configure-claude":
+            return self.configure_claude()
+        elif args.command == "favorites":
+            return self.handle_favorites_command(args)
+        elif args.command == "plant":
+            return self.handle_plant_command(args)
+        elif args.command == "info":
+            return self.handle_ward_info_command(args)
+        elif args.command == "search":
+            return self.handle_search_command(args)
+        elif args.command == "bookmark":
+            return self.handle_bookmark_command(args)
+        elif args.command == "recent":
+            return self.handle_recent_command(args)
+        elif args.command == "help":
+            parser.print_help()
+            return 0
+        else:
+            # Fallback to bash CLI for unknown commands
+            return self.run_ward_command([args.command] if args.command else [])
 
     def mcp_status(self) -> int:
         """Check MCP server status"""
@@ -359,6 +414,48 @@ class WardCLI:
             print("❌ Ward policy file is not readable (permissions issue)")
 
         return 0
+
+    def handle_favorites_command(self, args) -> int:
+        """Handle favorites command with simplified interface"""
+        if args.fav_action == "list" or args.fav_action is None:
+            return self.favorites_list()
+        elif args.fav_action == "add":
+            description = " ".join(args.description) if args.description else ""
+            return self.favorites_add(args.path, description)
+        elif args.fav_action == "comment":
+            return self.favorites_comment(args.path, args.comment, args.author)
+        else:
+            print(f"Unknown favorites command: {args.fav_action}", file=sys.stderr)
+            return 1
+
+    def handle_plant_command(self, args) -> int:
+        """Handle plant command"""
+        description = " ".join(args.description) if args.description else ""
+        return self.plant_ward_cli(args.path, description)
+
+    def handle_ward_info_command(self, args) -> int:
+        """Handle info command"""
+        return self.ward_info_cli(args.path)
+
+    def handle_search_command(self, args) -> int:
+        """Handle search command"""
+        return self.search_folders(args.query, getattr(args, 'in'), args.limit)
+
+    def handle_bookmark_command(self, args) -> int:
+        """Handle bookmark command"""
+        if args.bookmark_action == "add" or args.bookmark_action is None:
+            tags = [tag.strip() for tag in args.tags.split(",")] if args.tags else []
+            return self.add_bookmark(args.path, args.category, args.name, args.desc or "", tags)
+        elif args.bookmark_action == "list":
+            tags = [tag.strip() for tag in args.tags.split(",")] if args.tags else []
+            return self.list_bookmarks(args.category or "", tags)
+        else:
+            print(f"Unknown bookmark command: {args.bookmark_action}", file=sys.stderr)
+            return 1
+
+    def handle_recent_command(self, args) -> int:
+        """Handle recent command"""
+        return self.show_recent(args.hours, args.limit)
 
     def handle_search(self, args: List[str]) -> int:
         """Handle search command"""

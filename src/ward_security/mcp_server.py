@@ -9,6 +9,7 @@ to interact with Ward security policies through standardized MCP interface.
 
 import asyncio
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -24,8 +25,14 @@ except ImportError:
     sys.exit(1)
 
 # Import Ward favorites, planter, and indexer
-from .favorites import WardFavorites, WardPlanter
-from .indexer import WardIndexer
+try:
+    from .favorites import WardFavorites, WardPlanter
+    from .indexer import WardIndexer
+except ImportError:
+    # Handle direct execution case
+    sys.path.insert(0, os.path.dirname(__file__))
+    from favorites import WardFavorites, WardPlanter
+    from indexer import WardIndexer
 
 app = Server("ward-security")
 

@@ -81,9 +81,32 @@ ward> 💡 Educational hints provided for each command
 
 ## 📦 Installation
 
-**🔒 Security Notice**: Ward is designed for **local installation only** to prevent accidental global system access and maintain security boundaries. Global installation is intentionally disabled.
+Ward offers multiple installation methods. Choose the one that best fits your workflow:
 
-### Local Installation (Recommended)
+### 🚀 Quick Install (Recommended)
+```bash
+# One-click installation with Claude Desktop integration
+curl -sSL https://raw.githubusercontent.com/yamonco/ward/main/install.sh | bash
+
+# Or clone and run the installer
+git clone https://github.com/yamonco/ward.git
+cd ward
+./install.sh
+```
+
+### 📦 Package Installation (UVX/Pip)
+```bash
+# Install with UVX (recommended)
+uvx ward-security[mcp]
+
+# Or install with pip
+pip install ward-security[mcp]
+
+# Configure Claude Desktop
+ward-mcp add
+```
+
+### 🏗️ Local Development Installation
 ```bash
 # Clone the repository
 git clone https://github.com/yamonco/ward.git
@@ -91,14 +114,6 @@ cd ward
 
 # Run local installation script
 ./setup-ward.sh
-```
-
-### Using UV for Development Only
-```bash
-# For development or testing only (not for production use)
-uvx --from git+https://github.com/yamonco/ward.git python -m ward_security.cli --help
-
-# Note: This is for temporary use only. For permanent installation, use the setup script.
 ```
 
 ### What the Setup Script Does:
@@ -128,25 +143,32 @@ ward --version
 mkdir ai-secure-project
 cd ai-secure-project
 
-# Set up AI-friendly policies
-echo "@description: AI-Assisted Development Project
-@whitelist: ls cat pwd echo grep sed awk git python npm node code vim
-@blacklist: rm -rf / sudo su chmod chown docker kubectl
-@allow_ai_handles: true
-@ai_guidance: true
-@max_ai_operations: 10" > .ward
+# Set up AI-friendly policies automatically
+ward init
 
 # Verify AI safety setup
-ward-cli status
+ward status
 ```
 
 ### Step 2: Start AI Collaboration
 ```bash
-# Activate AI-safe shell
-ward-shell
+# Check policies for current directory
+ward check
 
-# Now Claude/Copilot can work safely within these boundaries
-# AI assistants will automatically be guided by Ward's policies
+# Check MCP server status for AI integration
+ward mcp-status
+
+# Configure Claude Desktop for direct AI integration
+ward configure-claude
+```
+
+### Step 3: AI Assistant Integration
+```bash
+# Claude, Copilot, and ChatGPT can now work safely within Ward's boundaries
+# AI assistants automatically receive guidance about allowed operations
+
+# Test the simplified CLI interface
+ward help
 ```
 
 ## 🤖 AI Assistant Integration Examples
@@ -269,16 +291,7 @@ ward-cli ai report --format markdown --include-suggestions
 - **Centralized AI activity** monitoring and review
 - **Onboarding assistance** for new AI users
 
-## 🎯 Real-World Success Stories
 
-### Company A: AI Code Review Integration
-> *"Ward saved us from potential disaster when our AI assistant attempted to delete our production database credentials. The smart protection and guidance features are now essential for our AI-powered development workflow."* - DevOps Lead
-
-### Startup B: Educational AI Partnership
-> *"We use Ward to teach our junior developers how to work with AI assistants safely. The real-time guidance and protection features have accelerated their learning while maintaining code security."* - CTO
-
-### Team C: Multi-AI Environment
-> *"With Claude, Copilot, and ChatGPT all working on our codebase, Ward provides the unified safety layer we need. The AI-specific policies and monitoring give us confidence in our AI-assisted development."* - Engineering Manager
 
 ## 🔧 MCP Integration for AI Assistants
 
@@ -421,13 +434,47 @@ class WardSecurityClient:
 - [Ward MCP Tools Documentation](./docs/mcp-tools.md)
 - [MCP Client Examples](./examples/mcp-clients/)
 
+## 🔧 MCP Management Commands
+
+### Easy Claude Desktop Integration
+```bash
+# Install Ward with MCP support and configure Claude Desktop automatically
+ward-mcp install
+
+# Add Ward to Claude Desktop (if already installed)
+ward-mcp add
+
+# Remove Ward from Claude Desktop
+ward-mcp remove
+
+# Check installation status
+ward-mcp status
+
+# Show available MCP tools
+ward-mcp info
+```
+
+### Package Management
+```bash
+# Update Ward
+uvx --upgrade ward-security[mcp]
+# or
+pip install --upgrade ward-security[mcp]
+
+# Uninstall Ward
+uvx --uninstall ward-security[mcp]
+# or
+pip uninstall ward-security
+```
+
 ## 🚀 Getting Started with AI
 
 1. **Install Ward** in your development environment
-2. **Set up MCP integration** for your AI assistant
-3. **Create AI-safe project** policies
-4. **Start collaborating** with your AI assistants
-5. **Monitor and refine** AI interactions over time
+2. **Set up MCP integration** with `ward-mcp add`
+3. **Create AI-safe project** policies with `ward init`
+4. **Restart Claude Desktop** to activate MCP integration
+5. **Start collaborating** with your AI assistants
+6. **Monitor and refine** AI interactions over time
 
 ## 🤝 Contributing
 

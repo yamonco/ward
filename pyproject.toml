@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ward-security"
 version = "2.0.0"
-description = "Ward Security System - Enterprise file system protection"
+description = "Ward Security System - Enterprise file system protection with AI integration"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
@@ -14,7 +14,7 @@ authors = [
 maintainers = [
     {name = "yamonco", email = "dev@yamonco.com"}
 ]
-keywords = ["security", "file-system", "protection", "cli", "ward"]
+keywords = ["security", "file-system", "protection", "cli", "ward", "mcp", "ai", "claude"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
@@ -41,6 +41,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+mcp = [
+    "mcp>=0.1.0",
+    "fastmcp>=0.1.0",
+]
+
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -50,11 +55,6 @@ dev = [
     "mypy>=1.0.0",
     "pre-commit>=2.20.0",
 ]
-docs = [
-    "mkdocs>=1.4.0",
-    "mkdocs-material>=8.5.0",
-    "mkdocstrings[python]>=0.19.0",
-]
 
 [project.urls]
 Homepage = "https://github.com/yamonco/ward"
@@ -63,9 +63,10 @@ Repository = "https://github.com/yamonco/ward.git"
 "Bug Tracker" = "https://github.com/yamonco/ward/issues"
 Changelog = "https://github.com/yamonco/ward/blob/main/CHANGELOG.md"
 
-# Note: Ward is designed for local installation only
-# Global installation is intentionally disabled for security reasons
-# Please use ./setup-ward.sh for local installation
+[project.scripts]
+ward = "ward_security.cli:main"
+ward-mcp = "ward_security.mcp_installer:main"
+ward-mcp-server = "ward_security.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -141,3 +142,7 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
+
+# MCP Configuration for easy installation
+[project.entry-points."mcp"]
+ward-security = "ward_security.mcp_server:main"

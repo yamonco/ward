@@ -1,39 +1,44 @@
 #!/usr/bin/env bash
-# .ward/ward.sh - 와드 시스템 유틸리티
+# ward.sh - Simplified Ward Security CLI v2.0
+# Clean, intuitive interface inspired by spekit
 
-WARD_ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+set -euo pipefail
 
-# 색상 정의
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+# Ward configuration
+readonly WARD_VERSION="2.0.0"
+readonly WARD_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 
-_print_header() {
-    echo -e "${BLUE}=== $1 ===${NC}"
+# Colors for output
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly PURPLE='\033[0;35m'
+readonly CYAN='\033[0;36m'
+readonly NC='\033[0m' # No Color
+
+# Utility functions
+print_msg() {
+    local color="${1:-NC}"
+    shift
+    echo -e "${color}$*${NC}"
 }
 
-_print_success() {
-    echo -e "${GREEN}✓ $1${NC}"
-}
+success() { print_msg "$GREEN" "✅ $*"; }
+error() { print_msg "$RED" "❌ $*" >&2; }
+warning() { print_msg "$YELLOW" "⚠️ $*"; }
+info() { print_msg "$BLUE" "ℹ️ $*"; }
 
-_print_warning() {
-    echo -e "${YELLOW}⚠ $1${NC}"
-}
-
-_print_error() {
-    echo -e "${RED}✗ $1${NC}"
-}
-
-_print_info() {
-    echo -e "${CYAN}ℹ $1${NC}"
-}
+# Legacy compatibility
+_print_header() { print_msg "$BLUE" "=== $1 ==="; }
+_print_success() { success "$*"; }
+_print_warning() { warning "$*"; }
+_print_error() { error "$*" >&2; }
+_print_info() { info "$*"; }
 
 # 와드 파일 찾기
 find_ward_files() {
-    find "$WARD_ROOT" -name ".ward" -type f 2>/dev/null | sort
+    find "$WARD_DIR" -name ".ward" -type f 2>/dev/null | sort
 }
 
 # 경로에 적용되는 와드 정책 찾기
@@ -50,7 +55,7 @@ get_policy_for_path() {
     # 절대 경로로 변환
     dir=$(cd "$dir" && pwd)
 
-    while [ "$dir" != "$WARD_ROOT" ] && [ "$dir" != "/" ]; do
+    while [ "$dir" != "$WARD_DIR" ] && [ "$dir" != "/" ]; do
         if [ -f "$dir/.ward" ]; then
             echo "$dir/.ward"
         fi
@@ -58,8 +63,8 @@ get_policy_for_path() {
     done
 
     # 루트 와드 확인
-    if [ -f "$WARD_ROOT/.ward/.ward" ]; then
-        echo "$WARD_ROOT/.ward/.ward"
+    if [ -f "$WARD_DIR/.ward" ]; then
+        echo "$WARD_DIR/.ward"
     fi
 }
 
@@ -104,7 +109,7 @@ parse_ward() {
 ward_status() {
     _print_header "WARD SYSTEM STATUS"
 
-    echo -e "${CYAN}Root Directory:${NC} $WARD_ROOT"
+    echo -e "${CYAN}Root Directory:${NC} $WARD_DIR"
     echo
 
     local wards
@@ -119,7 +124,7 @@ ward_status() {
     count=$(echo "$wards" | wc -l)
     _print_info "Found $count .ward file(s):"
     echo "$wards" | while read -r file; do
-        local rel_path="${file#$WARD_ROOT/}"
+        local rel_path="${file#$WARD_DIR/}"
         echo -e "  ${CYAN}•${NC} $rel_path"
     done
     echo
@@ -127,7 +132,7 @@ ward_status() {
     _print_header "POLICY SUMMARY"
     echo "$wards" | while read -r file; do
         if [ -n "$file" ]; then
-            local rel_path="${file#$WARD_ROOT/}"
+            local rel_path="${file#$WARD_DIR/}"
             echo -e "${YELLOW}$rel_path${NC}"
 
             local whitelist
@@ -168,7 +173,7 @@ ward_check() {
     _print_info "Applicable ward policies (parent → child):"
     echo "$policies" | while read -r file; do
         if [ -n "$file" ]; then
-            local rel_path="${file#$WARD_ROOT/}"
+            local rel_path="${file#$WARD_DIR/}"
             echo -e "  ${CYAN}•${NC} $rel_path"
 
             local description
@@ -202,7 +207,7 @@ ward_validate() {
 
     echo "$wards" | while read -r file; do
         if [ -n "$file" ]; then
-            local rel_path="${file#$WARD_ROOT/}"
+            local rel_path="${file#$WARD_DIR/}"
             echo -n "Validating $rel_path... "
 
             # 기본 형식 검사
@@ -235,7 +240,7 @@ ward_debug() {
     echo
 
     # 가드 스크립트 상태
-    local guard_script="$WARD_ROOT/.ward/guard.sh"
+    local guard_script="$WARD_DIR/.ward/guard.sh"
     if [ -f "$guard_script" ]; then
         _print_success "Guard script exists: $guard_script"
         if bash -n "$guard_script" 2>/dev/null; then
@@ -250,7 +255,7 @@ ward_debug() {
     echo
 
     # ward-shell 상태
-    local ward_shell="$WARD_ROOT/ward-shell"
+    local ward_shell="$WARD_DIR/ward-shell"
     if [ -f "$ward_shell" ]; then
         _print_success "Ward shell exists: $ward_shell"
         if [ -x "$ward_shell" ]; then
@@ -265,7 +270,7 @@ ward_debug() {
 
     # 환경 변수
     echo -e "${CYAN}Environment Variables:${NC}"
-    echo "WARD_ROOT=${WARD_ROOT:-<unset>}"
+    echo "WARD_DIR=${WARD_DIR:-<unset>}"
     echo "BASH_ENV=${BASH_ENV:-<unset>}"
     echo
 
@@ -289,10 +294,10 @@ ward_test() {
     echo -e "${CYAN}Testing with ward environment...${NC}"
 
     # ward-shell로 테스트
-    if [ -x "$WARD_ROOT/ward-shell" ]; then
-        local full_cmd="cd '$WARD_ROOT' && $cmd"
-        echo -e "${CYAN}Executing: $WARD_ROOT/ward-shell -c \"$full_cmd\"${NC}"
-        if "$WARD_ROOT/ward-shell" -c "$full_cmd" 2>&1; then
+    if [ -x "$WARD_DIR/ward-shell" ]; then
+        local full_cmd="cd '$WARD_DIR' && $cmd"
+        echo -e "${CYAN}Executing: $WARD_DIR/ward-shell -c \"$full_cmd\"${NC}"
+        if "$WARD_DIR/ward-shell" -c "$full_cmd" 2>&1; then
             _print_success "Command allowed"
         else
             _print_error "Command blocked or failed"
@@ -322,7 +327,7 @@ ward_comments() {
 
             echo "$policies" | while read -r file; do
                 if [ -n "$file" ]; then
-                    local rel_path="${file#$WARD_ROOT/}"
+                    local rel_path="${file#$WARD_DIR/}"
                     echo -e "${YELLOW}$rel_path${NC}"
 
                     local allow_comments
@@ -358,7 +363,7 @@ ward_comments() {
 
             echo "$policies" | while read -r file; do
                 if [ -n "$file" ]; then
-                    local rel_path="${file#$WARD_ROOT/}"
+                    local rel_path="${file#$WARD_DIR/}"
                     echo -e "${YELLOW}$rel_path${NC}"
 
                     grep "^#" "$file" 2>/dev/null | grep -v "^# @" | while read -r comment; do
@@ -415,68 +420,290 @@ ward_help() {
     echo "  comment <text>               Add comment to .ward file"
 }
 
-# 메인 처리
-case "${1:-help}" in
-    "status")
-        ward_status
-        ;;
-    "check")
-        ward_check "$2"
-        ;;
-    "validate")
-        ward_validate
-        ;;
-    "debug")
-        ward_debug "$2"
-        ;;
-    "test")
-        ward_test "$2" "$3"
-        ;;
-    "comments")
-        ward_comments "$2" "$3"
-        ;;
-    "install")
-        if [ -x "$WARD_ROOT/.ward/auto-ward.sh" ]; then
-            "$WARD_ROOT/.ward/auto-ward.sh" install
-        else
-            _print_error "auto-ward.sh not found"
-        fi
-        ;;
-    "auth")
-        if [ -x "$WARD_ROOT/.ward/ward-auth.sh" ]; then
-            "$WARD_ROOT/.ward/ward-auth.sh" "${2:-status}"
-        else
-            _print_error "ward-auth.sh not found"
-        fi
-        ;;
-    "deploy")
-        if [ -x "$WARD_ROOT/.ward/ward-auth.sh" ]; then
-            "$WARD_ROOT/.ward/ward-auth.sh" deploy "$2" "$3"
-        else
-            _print_error "ward-auth.sh not found"
-        fi
-        ;;
-    "cleanup")
-        if [ -x "$WARD_ROOT/.ward/ward-auth.sh" ]; then
-            "$WARD_ROOT/.ward/ward-auth.sh" cleanup "$2"
-        else
-            _print_error "ward-auth.sh not found"
-        fi
-        ;;
-    "export")
-        if [ -x "$WARD_ROOT/.ward/ward-auth.sh" ]; then
-            "$WARD_ROOT/.ward/ward-auth.sh" export "$2" "$3"
-        else
-            _print_error "ward-auth.sh not found"
-        fi
-        ;;
-    "help"|"-h"|"--help")
-        ward_help
-        ;;
-    *)
-        _print_error "Unknown command: $1"
-        echo
-        ward_help
+# Check dependencies
+check_ward_installation() {
+    if [[ ! -d "$WARD_DIR" ]]; then
+        error "Ward installation not found at $WARD_DIR"
+        info "Please run ./setup-ward.sh first"
         exit 1
-        ;;
-esac
+    fi
+}
+
+# Command functions
+cmd_status() {
+    info "Ward Security System v$WARD_VERSION"
+    echo
+    info "🔍 System Status:"
+
+    # Check installation
+    if [[ -d "$HOME/.ward" ]]; then
+        success "Ward installed locally at ~/.ward"
+    else
+        warning "Ward not installed in home directory"
+    fi
+
+    # Check MCP server
+    if [[ -f "$HOME/.ward/mcp/mcp_server.py" ]]; then
+        success "MCP server available"
+    else
+        warning "MCP server not found"
+    fi
+
+    echo
+    info "📍 Installation directory: $WARD_DIR"
+    info "🏠 Home directory: $HOME"
+
+    # Show ward status using legacy function for compatibility
+    echo
+    ward_status
+}
+
+cmd_init() {
+    local target_dir="${1:-$(pwd)}"
+
+    info "🚀 Initializing Ward in: $target_dir"
+
+    # Create directory if it doesn't exist
+    mkdir -p "$target_dir"
+
+    # Create basic .ward file
+    cat > "$target_dir/.ward" << 'EOF'
+# Ward Security Configuration
+@description: AI-Assisted Development Project
+@whitelist: ls cat pwd echo grep sed awk git python npm node code vim
+@blacklist: rm -rf / sudo su chmod chown docker kubectl
+@allow_comments: true
+@max_comments: 5
+@comment_prompt: "Explain changes from a security perspective"
+EOF
+
+    success "Ward initialized in $target_dir"
+    info "Edit $target_dir/.ward to customize policies"
+}
+
+cmd_check() {
+    local target="${1:-$(pwd)}"
+
+    info "🔍 Checking Ward policies for: $target"
+    echo
+
+    if [[ -f "$target/.ward" ]]; then
+        success "✓ Ward policy found"
+        echo
+        info "📋 Policy Summary:"
+        while IFS= read -r line; do
+            if [[ "$line" =~ ^@description: ]]; then
+                echo "  📝 $line"
+            elif [[ "$line" =~ ^@whitelist: ]]; then
+                echo "  ✅ Allowed: $line"
+            elif [[ "$line" =~ ^@blacklist: ]]; then
+                echo "  ❌ Blocked: $line"
+            fi
+        done < "$target/.ward"
+    else
+        warning "⚠ No .ward policy found in $target"
+        info "Use 'ward init' to create a policy"
+    fi
+
+    # Use legacy check function for detailed analysis
+    echo
+    ward_check "$target"
+}
+
+cmd_mcp_status() {
+    info "🤖 MCP Server Status"
+    echo
+
+    if [[ -f "$HOME/.ward/mcp/mcp_server.py" ]]; then
+        success "✅ MCP server installed"
+
+        # Test if Python can import it
+        if python3 -c "import sys; sys.path.append('$HOME/.ward/mcp'); import mcp_server" 2>/dev/null; then
+            success "✅ MCP server functional"
+        else
+            warning "⚠ MCP server import test failed"
+        fi
+    else
+        error "❌ MCP server not found"
+        info "Run ./setup-ward.sh to install MCP components"
+    fi
+}
+
+cmd_mcp_test() {
+    info "🧪 Testing MCP Server"
+
+    if [[ -f "$HOME/.ward/mcp/mcp_server.py" ]]; then
+        echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize"}' | python3 "$HOME/.ward/mcp/mcp_server.py" --stdio 2>/dev/null && \
+            success "✅ MCP server responding correctly" || \
+            error "❌ MCP server test failed"
+    else
+        error "❌ MCP server not found"
+    fi
+}
+
+cmd_configure_claude() {
+    local script="$WARD_DIR/configure-claude-desktop.sh"
+
+    if [[ -x "$script" ]]; then
+        info "🔧 Configuring Claude Desktop..."
+        "$script"
+    else
+        error "❌ Claude Desktop configuration script not found"
+        return 1
+    fi
+}
+
+cmd_help() {
+    cat << 'EOF'
+🛡️  Ward Security System - AI-Powered Terminal Protection
+
+USAGE:
+    ward [COMMAND] [OPTIONS]
+
+CORE COMMANDS:
+    status              Show Ward system status
+    init [path]         Initialize Ward in directory (default: current)
+    check [path]        Check security policies for path
+    validate            Validate security policies
+    help                Show this help message
+    version             Show version information
+
+MCP INTEGRATION:
+    mcp-status          Check MCP server status
+    mcp-test            Test MCP server functionality
+    configure-claude    Configure Claude Desktop integration
+
+ADVANCED COMMANDS:
+    favorites           Manage favorite directories
+    plant <path>        Plant Ward protection
+    info <path>         Get Ward information
+    search <query>      Search indexed folders
+    bookmark            Manage bookmarks
+    recent              Show recent access
+    debug [path]        Show debug information
+    comments [path] [action]  Manage comments
+
+EXAMPLES:
+    ward                           # Show status
+    ward init                      # Initialize in current directory
+    ward check frontend/src        # Check policies for frontend/src
+    ward mcp-status                # Check MCP server
+    ward search "config"           # Search for configuration files
+
+For detailed help on specific commands:
+    ward favorites --help
+    ward bookmark --help
+    ward search --help
+
+🤖 AI Integration:
+    Ward works seamlessly with Claude, Copilot, and ChatGPT through MCP.
+    Use 'configure-claude' to set up AI assistant integration.
+EOF
+}
+
+cmd_version() {
+    echo "Ward Security System v$WARD_VERSION"
+    echo "AI-Powered Terminal Protection"
+}
+
+# Advanced commands (Python CLI integration)
+cmd_advanced() {
+    local python_cli="$WARD_DIR/src/ward_security/cli.py"
+
+    if [[ -f "$python_cli" && -x "$python_cli" ]]; then
+        python3 "$python_cli" "$@"
+    else
+        error "Advanced CLI not available"
+        return 1
+    fi
+}
+
+# Main execution
+main() {
+    check_ward_installation
+
+    # Simple command parsing
+    case "${1:-status}" in
+        "status"|"")
+            cmd_status
+            ;;
+        "init")
+            cmd_init "${2:-}"
+            ;;
+        "check")
+            cmd_check "${2:-}"
+            ;;
+        "validate")
+            ward_validate
+            ;;
+        "mcp-status")
+            cmd_mcp_status
+            ;;
+        "mcp-test")
+            cmd_mcp_test
+            ;;
+        "configure-claude")
+            cmd_configure_claude
+            ;;
+        "favorites"|"plant"|"info"|"search"|"bookmark"|"recent")
+            # Forward to Python CLI for advanced commands
+            cmd_advanced "$@"
+            ;;
+        "debug")
+            ward_debug "${2:-}"
+            ;;
+        "comments")
+            ward_comments "${2:-}" "${3:-}"
+            ;;
+        "help"|"-h"|"--help")
+            cmd_help
+            ;;
+        "version"|"-v"|"--version")
+            cmd_version
+            ;;
+        "install")
+            if [ -x "$WARD_DIR/.ward/auto-ward.sh" ]; then
+                "$WARD_DIR/.ward/auto-ward.sh" install
+            else
+                error "auto-ward.sh not found"
+            fi
+            ;;
+        "auth")
+            if [ -x "$WARD_DIR/.ward/ward-auth.sh" ]; then
+                "$WARD_DIR/.ward/ward-auth.sh" "${2:-status}"
+            else
+                error "ward-auth.sh not found"
+            fi
+            ;;
+        "deploy")
+            if [ -x "$WARD_DIR/.ward/ward-auth.sh" ]; then
+                "$WARD_DIR/.ward/ward-auth.sh" deploy "$2" "$3"
+            else
+                error "ward-auth.sh not found"
+            fi
+            ;;
+        "cleanup")
+            if [ -x "$WARD_DIR/.ward/ward-auth.sh" ]; then
+                "$WARD_DIR/.ward/ward-auth.sh" cleanup "$2"
+            else
+                error "ward-auth.sh not found"
+            fi
+            ;;
+        "export")
+            if [ -x "$WARD_DIR/.ward/ward-auth.sh" ]; then
+                "$WARD_DIR/.ward/ward-auth.sh" export "$2" "$3"
+            else
+                error "ward-auth.sh not found"
+            fi
+            ;;
+        *)
+            error "Unknown command: $1"
+            echo
+            cmd_help
+            exit 1
+            ;;
+    esac
+}
+
+# Execute main function with all arguments
+main "$@"
