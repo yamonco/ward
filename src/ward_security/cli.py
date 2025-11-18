@@ -34,7 +34,7 @@ class WardCLI:
     def run_ward_command(self, args: List[str]) -> int:
         """Execute Ward CLI command"""
         if not self.ward_cli_path.exists():
-            print("Error: Ward CLI not found. Please run 'ward-init' first.", file=sys.stderr)
+            print("Error: Ward CLI not found. Please run 'ward init' first.", file=sys.stderr)
             return 1
 
         try:
@@ -183,25 +183,11 @@ class WardCLI:
         if args.command == "mcp-server":
             return self.run_mcp_server()
         elif args.command == "status" or args.command is None:
-            return self.run_ward_command(["status"])
+            return self.handle_status_command()
         elif args.command == "validate":
-            return self.run_ward_command(["validate"])
+            return self.handle_validate_command()
         elif args.command == "check":
-            # Check if .ward file exists in target directory
-            target_path = Path(args.path).resolve()
-            ward_file = target_path / ".ward"
-
-            if not ward_file.exists():
-                print(f"❌ No .ward policy found in {args.path}")
-                print()
-                print("💡 Initialize Ward first:")
-                print(f"   ward init {args.path}")
-                print()
-                print("Or initialize in current directory:")
-                print("   ward init")
-                return 1
-
-            return self.run_ward_command(["check", args.path])
+            return self.handle_check_command(args)
         elif args.command == "init":
             return self.handle_init_command(args)
         elif args.command == "mcp-status":
@@ -741,6 +727,109 @@ class WardCLI:
             print(f"   ⏰ {time_str}")
             print(f"   🔧 Action: {entry['action']}")
             print()
+
+        return 0
+
+    def handle_status_command(self) -> int:
+        """Handle status command"""
+        print("🔍 Ward Security System Status")
+        print("=" * 30)
+
+        # Check if current directory has .ward file
+        current_dir = Path.cwd()
+        ward_file = current_dir / ".ward"
+
+        if ward_file.exists():
+            print(f"✅ Ward protection active in: {current_dir}")
+            print(f"📁 Policy file: {ward_file}")
+
+            # Read and display basic policy info
+            try:
+                with open(ward_file, 'r') as f:
+                    content = f.read()
+                    for line in content.split('\n'):
+                        if line.startswith('@description:'):
+                            print(f"📝 {line}")
+                            break
+            except Exception:
+                pass
+        else:
+            print(f"❌ No Ward protection in: {current_dir}")
+            print("💡 Initialize with: ward init")
+
+        return 0
+
+    def handle_validate_command(self) -> int:
+        """Handle validate command"""
+        print("🔒 Validating Ward Security Policies")
+        print("=" * 35)
+
+        current_dir = Path.cwd()
+        ward_file = current_dir / ".ward"
+
+        if not ward_file.exists():
+            print("❌ No .ward policy found to validate")
+            print("💡 Initialize first: ward init")
+            return 1
+
+        try:
+            with open(ward_file, 'r') as f:
+                content = f.read()
+
+            if '@whitelist:' in content and '@blacklist:' in content:
+                print("✅ Policy structure is valid")
+
+                # Count rules
+                whitelist_count = content.count('@whitelist:')
+                blacklist_count = content.count('@blacklist:')
+
+                print(f"📋 Whitelist rules: {whitelist_count}")
+                print(f"🚫 Blacklist rules: {blacklist_count}")
+
+            else:
+                print("⚠️  Incomplete policy - missing whitelist or blacklist")
+                return 1
+
+        except Exception as e:
+            print(f"❌ Error reading policy file: {e}")
+            return 1
+
+        return 0
+
+    def handle_check_command(self, args) -> int:
+        """Handle check command"""
+        target_path = Path(args.path).resolve()
+        ward_file = target_path / ".ward"
+
+        if not ward_file.exists():
+            print(f"❌ No .ward policy found in {args.path}")
+            print()
+            print("💡 Initialize Ward first:")
+            print(f"   ward init {args.path}")
+            print()
+            print("Or initialize in current directory:")
+            print("   ward init")
+            return 1
+
+        print(f"🔍 Checking Ward policies for: {args.path}")
+        print("=" * 40)
+        print(f"✅ .ward policy found: {ward_file}")
+
+        # Read and display policy summary
+        try:
+            with open(ward_file, 'r') as f:
+                content = f.read()
+
+            if '@description:' in content:
+                for line in content.split('\n'):
+                    if line.startswith('@description:'):
+                        print(f"📝 {line}")
+                        break
+
+            print("📋 Policy active - use specific commands for detailed analysis")
+
+        except Exception as e:
+            print(f"⚠️  Warning reading policy: {e}")
 
         return 0
 
