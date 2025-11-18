@@ -8,6 +8,7 @@ import os
 import sys
 import subprocess
 import argparse
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
@@ -144,8 +145,24 @@ class WardCLI:
         plant_parser.add_argument("path", nargs="?", default=".", help="Path to protect (defaults to current directory)")
         plant_parser.add_argument("description", nargs="*", help="Description (optional - if not provided, creates description-only Ward with all permissions)")
 
+        lock_parser = subparsers.add_parser("lock", help="Lock directory with restriction message")
+        lock_parser.add_argument("message", help="Lock restriction message")
+        lock_parser.add_argument("path", nargs="?", default=".", help="Path to lock (defaults to current directory)")
+
+        unlock_parser = subparsers.add_parser("unlock", help="Unlock directory with permission message")
+        unlock_parser.add_argument("message", help="Unlock permission message")
+        unlock_parser.add_argument("path", nargs="?", default=".", help="Path to unlock (defaults to current directory)")
+
         info_parser = subparsers.add_parser("info", help="Get Ward information")
         info_parser.add_argument("path", help="Path to check")
+
+        # Add command with subcommands
+        add_parser = subparsers.add_parser("add", help="Add various items to Ward")
+        add_subparsers = add_parser.add_subparsers(dest="add_action")
+
+        add_comment_parser = add_subparsers.add_parser("comment", help="Add comment to current directory")
+        add_comment_parser.add_argument("comment", help="Comment text")
+        add_comment_parser.add_argument("path", nargs="?", default=".", help="Path to comment on (defaults to current directory)")
 
         # Search and bookmarks
         search_parser = subparsers.add_parser("search", help="Search through indexed folders")
@@ -204,8 +221,14 @@ class WardCLI:
             return self.handle_favorites_command(args)
         elif args.command == "plant":
             return self.handle_plant_command(args)
+        elif args.command == "lock":
+            return self.handle_lock_command(args)
+        elif args.command == "unlock":
+            return self.handle_unlock_command(args)
         elif args.command == "info":
             return self.handle_ward_info_command(args)
+        elif args.command == "add":
+            return self.handle_add_command(args)
         elif args.command == "search":
             return self.handle_search_command(args)
         elif args.command == "bookmark":
@@ -568,6 +591,81 @@ class WardCLI:
     def handle_ward_info_command(self, args) -> int:
         """Handle info command"""
         return self.ward_info_cli(args.path)
+
+    def handle_lock_command(self, args) -> int:
+        """Handle lock command"""
+        print(f"🔒 Locking directory: {args.path}")
+        print(f"📝 Lock message: {args.message}")
+
+        # Create a restrictive Ward configuration
+        lock_description = f"🔒 LOCKED: {args.message}"
+        result = self.plant_ward_cli(args.path, lock_description)
+
+        if result == 0:
+            print()
+            print("✅ Directory locked successfully!")
+            print(f"📍 Location: {args.path}")
+            print(f"🔒 Restriction: {args.message}")
+            print()
+            print("🛡️ Lock Status:")
+            print("=" * 40)
+            self.ward_info_cli(args.path)
+
+        return result
+
+    def handle_unlock_command(self, args) -> int:
+        """Handle unlock command"""
+        print(f"🔓 Unlocking directory: {args.path}")
+        print(f"📝 Unlock message: {args.message}")
+
+        # Create a permissive Ward configuration
+        unlock_description = f"🔓 UNLOCKED: {args.message}"
+        result = self.plant_ward_cli(args.path, unlock_description)
+
+        if result == 0:
+            print()
+            print("✅ Directory unlocked successfully!")
+            print(f"📍 Location: {args.path}")
+            print(f"🔓 Permission: {args.message}")
+            print()
+            print("🛡️ Unlock Status:")
+            print("=" * 40)
+            self.ward_info_cli(args.path)
+
+        return result
+
+    def handle_add_command(self, args) -> int:
+        """Handle add command with subcommands"""
+        if args.add_action == "comment":
+            print(f"💬 Adding comment to: {args.path}")
+            print(f"📝 Comment: {args.comment}")
+
+            # For now, create a simple comment file (can be enhanced later)
+            comment_file = Path(args.path) / ".ward_comment.txt"
+            try:
+                with open(comment_file, 'w', encoding='utf-8') as f:
+                    f.write(f"💬 Comment: {args.comment}\n")
+                    f.write(f"📅 Added: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                    f.write(f"👤 By: CLI User\n")
+
+                print("✅ Comment added successfully!")
+                print(f"📍 Location: {comment_file}")
+                print(f"📝 Content: {args.comment}")
+                return 0
+
+            except Exception as e:
+                print(f"❌ Failed to add comment: {e}", file=sys.stderr)
+                return 1
+        elif args.add_action is None:
+            # No subcommand provided - show usage
+            print("Usage: ward add <subcommand> [options]")
+            print("Subcommands:")
+            print("  comment    Add a comment to current directory")
+            print("\nUse 'ward add <subcommand> --help' for detailed help")
+            return 1
+        else:
+            print(f"Unknown add command: {args.add_action}", file=sys.stderr)
+            return 1
 
     def handle_search_command(self, args) -> int:
         """Handle search command"""
