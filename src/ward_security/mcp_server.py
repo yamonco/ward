@@ -875,13 +875,16 @@ async def read_resource(uri: str) -> str:
     else:
         return f"Unknown resource: {uri}"
 
-async def main():
-    """Main MCP server entry point"""
+def main():
+    """Main entry point for ward-mcp-server command"""
     print("🤖 Ward Security MCP Server Starting...", file=sys.stderr)
     print("📡 Providing Ward security tools to AI assistants via MCP", file=sys.stderr)
 
-    async with stdio_server() as (read_stream, write_stream):
-        await app.run(read_stream, write_stream)
+    async def run_server():
+        async with stdio_server() as (read_stream, write_stream):
+            await app.run(read_stream, write_stream)
+
+    asyncio.run(run_server())
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

@@ -97,13 +97,13 @@ cd ward
 ### 📦 Package Installation (UVX/Pip)
 ```bash
 # Install with UVX (recommended)
-uv tool install git+https://github.com/yamonco/ward.git
+uv tool install "git+https://github.com/yamonco/ward.git[mcp]"
 
 # Or install with pip
-pip install git+https://github.com/yamonco/ward.git
+pip install "git+https://github.com/yamonco/ward.git[mcp]"
 
-# Configure Claude Desktop
-ward-mcp add
+# Add Ward to Claude (super simple!)
+claude mcp add ward-security ward-mcp-server
 
 # Test Ward installation
 ward check .
@@ -463,9 +463,9 @@ ward-mcp info
 ### Package Management
 ```bash
 # Update Ward
-uv tool install --force git+https://github.com/yamonco/ward.git
+uv tool install --force "git+https://github.com/yamonco/ward.git[mcp]"
 # or
-pip install --upgrade git+https://github.com/yamonco/ward.git
+pip install --upgrade "git+https://github.com/yamonco/ward.git[mcp]"
 
 # Uninstall Ward
 uv tool uninstall ward

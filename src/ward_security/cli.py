@@ -53,6 +53,18 @@ class WardCLI:
             print(f"Error executing Ward command: {e}", file=sys.stderr)
             return 1
 
+    def run_mcp_server(self) -> int:
+        """Run Ward as MCP server"""
+        try:
+            from .mcp_server import main as mcp_main
+            return mcp_main()
+        except ImportError:
+            print("Error: MCP server not available. Install with: pip install mcp", file=sys.stderr)
+            return 1
+        except Exception as e:
+            print(f"Error running MCP server: {e}", file=sys.stderr)
+            return 1
+
     def main(self) -> int:
         """Main CLI entry point - simplified interface"""
         parser = argparse.ArgumentParser(
@@ -64,6 +76,12 @@ class WardCLI:
             "--version",
             action="version",
             version="Ward Security v2.0.0"
+        )
+
+        parser.add_argument(
+            "--mcp",
+            action="store_true",
+            help="Run Ward as MCP server"
         )
 
         # Create subparsers for commands
@@ -132,13 +150,18 @@ class WardCLI:
         recent_parser.add_argument("--hours", type=int, default=24, help="Hours to look back")
         recent_parser.add_argument("--limit", type=int, default=20, help="Result limit")
 
+        # MCP server command
+        subparsers.add_parser("mcp-server", help="Run Ward as MCP server")
+
         # Help and version
         subparsers.add_parser("help", help="Show this help message")
 
         args = parser.parse_args()
 
         # Handle commands
-        if args.command == "status" or args.command is None:
+        if args.command == "mcp-server":
+            return self.run_mcp_server()
+        elif args.command == "status" or args.command is None:
             return self.run_ward_command(["status"])
         elif args.command == "validate":
             return self.run_ward_command(["validate"])
