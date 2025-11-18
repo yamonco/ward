@@ -141,7 +141,7 @@ class WardCLI:
 
         # Ward management
         plant_parser = subparsers.add_parser("plant", help="Plant a Ward (protection)")
-        plant_parser.add_argument("path", help="Path to protect")
+        plant_parser.add_argument("path", nargs="?", default=".", help="Path to protect (defaults to current directory)")
         plant_parser.add_argument("description", nargs="*", help="Description (optional - if not provided, creates description-only Ward with all permissions)")
 
         info_parser = subparsers.add_parser("info", help="Get Ward information")
@@ -550,11 +550,20 @@ class WardCLI:
         """Handle plant command"""
         if args.description:
             description = " ".join(args.description)
-            return self.plant_ward_cli(args.path, description)
         else:
             # No description provided - create a default description-only Ward
-            default_description = f"이 폴더는 건드리면 안된다"
-            return self.plant_ward_cli(args.path, default_description)
+            description = f"이 폴더는 건드리면 안된다"
+
+        result = self.plant_ward_cli(args.path, description)
+
+        # Show planted result after successful planting
+        if result == 0:
+            print()
+            print("🌱 **심어진 결과 (Planted Result):**")
+            print("=" * 50)
+            self.ward_info_cli(args.path)
+
+        return result
 
     def handle_ward_info_command(self, args) -> int:
         """Handle info command"""
