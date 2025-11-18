@@ -8,9 +8,10 @@ import os
 import sys
 import subprocess
 import argparse
+import json
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import re
 
 # Import favorites functionality
@@ -20,6 +21,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from favorites import WardFavorites, WardPlanter
 from indexer import WardIndexer
+from ai_assistant import AIAssistantManager, AssistantType
 
 class WardCLI:
     """Ward Security Command Line Interface"""
@@ -31,6 +33,8 @@ class WardCLI:
         self.mcp_server_path = self.ward_home / "mcp" / "mcp_server.py"
         self.favorites = WardFavorites()
         self.planter = WardPlanter()
+        self.ai_manager = AIAssistantManager()
+        self.ward_shell_mode = False  # Track if we're in Ward Shell mode
         self.indexer = WardIndexer()
 
     def run_ward_command(self, args: List[str]) -> int:
@@ -278,77 +282,246 @@ class WardCLI:
         print("• 확인 절차가 있어 안전합니다")
 
     def _process_natural_language(self, user_input: str):
-        """자연어 입력 처리"""
-        user_input_lower = user_input.lower()
+        """AI assistant 기반 자연어 처리"""
+        # AI 어시스턴트로 명령어 처리
+        result = self.process_natural_command(user_input)
 
-        # 잠금 관련 키워드
-        if any(keyword in user_input_lower for keyword in ['잠가', '잠금', 'lock', '잠그']):
-            message = user_input  # 전체 입력을 메시지로 사용
-            if not message:
-                message = "사용자 요청으로 잠금"
-            result = self.plant_ward_cli(".", f"🔒 LOCKED: {message}")
-            if result == 0:
-                print("✅ 잠겼습니다!")
-                self.ward_info_cli(".")
+        if result.get("assistant") != "local" and "reasoning" in result:
+            # AI 어시스턴트의 결과
+            print(f"🤖 {result['assistant']} 분석:")
+            if "reasoning" in result:
+                print(f"💡 사유: {result['reasoning']}")
+            print()
+
+        # 결과에 따른 액션 실행
+        action = result.get("action", "unknown")
+        confidence = result.get("confidence", 0.0)
+
+        if confidence < 0.5:
+            print(f"⚠️  낮은 신뢰도 ({confidence:.2f}): 명령어를 명확하게 해주세요")
+            return
+
+        if action == "lock":
+            message = result.get("message", user_input)
+            path = result.get("path", ".")
+            print(f"🔒 '{path}'를 잠급니다...")
+            plant_result = self.plant_ward_cli(path, f"🔒 LOCKED: {message}")
+            if plant_result == 0:
+                print("✅ 성공적으로 잠겼습니다!")
+                self.ward_info_cli(path)
             else:
                 print("❌ 잠그기 실패")
 
-        # 잠금 해제 관련 키워드
-        elif any(keyword in user_input_lower for keyword in ['풀어', '해제', 'unlock', '열어', '잠금해제']):
-            message = user_input  # 전체 입력을 메시지로 사용
-            if not message:
-                message = "사용자 요청으로 잠금 해제"
-            result = self.plant_ward_cli(".", f"🔓 UNLOCKED: {message}")
-            if result == 0:
-                print("✅ 잠금 해제되었습니다!")
-                self.ward_info_cli(".")
+        elif action == "unlock":
+            message = result.get("message", user_input)
+            path = result.get("path", ".")
+            print(f"🔓 '{path}'의 잠금을 해제합니다...")
+            plant_result = self.plant_ward_cli(path, f"🔓 UNLOCKED: {message}")
+            if plant_result == 0:
+                print("✅ 성공적으로 잠금 해제되었습니다!")
+                self.ward_info_cli(path)
             else:
                 print("❌ 잠금 해제 실패")
 
-        # 보호/설치 관련 키워드
-        elif any(keyword in user_input_lower for keyword in ['보호', '설치', '만들어', 'plant', 'seed', 'seedling']):
-            description = user_input if user_input else "사용자 요청으로 보호"
-            result = self.plant_ward_cli(".", description)
-            if result == 0:
-                print("✅ 보호 설정되었습니다!")
-                self.ward_info_cli(".")
+        elif action == "plant":
+            description = result.get("description", user_input)
+            path = result.get("path", ".")
+            print(f"🌱 '{path}'에 보호를 설치합니다...")
+            plant_result = self.plant_ward_cli(path, description)
+            if plant_result == 0:
+                print("✅ 성공적으로 보호 설정되었습니다!")
+                self.ward_info_cli(path)
             else:
                 print("❌ 보호 설정 실패")
 
-        # 코멘트 관련 키워드
-        elif any(keyword in user_input_lower for keyword in ['코멘트', 'comment', '메모', '남겨', '추가해']):
-            comment_file = Path.cwd() / ".ward_comment.txt"
+        elif action == "add_comment":
+            comment = result.get("comment", user_input)
+            path = result.get("path", ".")
+            print(f"💬 '{path}'에 코멘트를 추가합니다...")
+            comment_file = Path(path) / ".ward_comment.txt"
             try:
                 with open(comment_file, 'w', encoding='utf-8') as f:
-                    f.write(f"💬 Comment: {user_input}\n")
+                    f.write(f"💬 Comment: {comment}\n")
                     f.write(f"📅 Added: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
                     f.write(f"👤 By: Interactive User\n")
-                print("✅ 코멘트 추가되었습니다!")
+                print("✅ 코멘트가 추가되었습니다!")
+                print(f"📍 위치: {comment_file}")
             except Exception as e:
                 print(f"❌ 코멘트 추가 실패: {e}")
 
-        # 상태 확인 관련 키워드
-        elif any(keyword in user_input_lower for keyword in ['상태', 'status', '확인', '보여', '어떻게']):
-            print("\nℹ️ 현재 상태:")
-            self.ward_info_cli(".")
+        elif action == "status":
+            path = result.get("path", ".")
+            print(f"ℹ️ '{path}' 상태 확인:")
+            self.ward_info_cli(path)
 
-        # 이동 관련 키워드
-        elif any(keyword in user_input_lower for keyword in ['이동', '가', 'goto', 'change']):
-            # 경로 추출 시도
-            path_match = re.search(r'["\'\s]+([^"\']+)["\'\s]*$', user_input)
-            if path_match:
-                new_path = path_match.group(1).strip()
-                try:
-                    os.chdir(new_path)
-                    print(f"✅ {Path.cwd()}로 이동했습니다.")
-                except Exception as e:
-                    print(f"❌ 이동 실패: {e}")
-            else:
-                print("📍 이동할 경로를 알려주세요: '이동해줘 /path/to/folder'")
-
-        else:
+        elif action == "unknown":
             print("❌ 이해하지 못했습니다. 다른 방식으로 말씀해주세요.")
-            print("💡 도움말을 보려면 '도움말' 또는 'help'를 입력하세요")
+            print(f"💡 팁: '{user_input}' - 더 명확한 명령어를 사용해보세요")
+            print("🤖 현재 AI 어시스턴트:", result.get("assistant", "local"))
+        else:
+            print(f"⚠️  알 수 없는 액션: {action}")
+
+        # 신뢰도 표시
+        if confidence >= 0.8:
+            print(f"✅ 신뢰도: {confidence:.2f} (높음)")
+        elif confidence >= 0.5:
+            print(f"⚠️  신뢰도: {confidence:.2f} (중간)")
+        else:
+            print(f"❌ 신뢰도: {confidence:.2f} (낮음)")
+
+    def handle_ai_command(self, args) -> int:
+        """Handle AI assistant commands"""
+        if args.ai_action == "list":
+            print(self.ai_manager.get_assistant_menu())
+            return 0
+        elif args.ai_action == "select":
+            success = self.ai_manager.set_active_assistant(args.assistant_name)
+            if success:
+                print(f"✅ AI assistant '{args.assistant_name}' selected successfully!")
+                active = self.ai_manager.get_active_assistant()
+                if active:
+                    print(f"🤖 Model: {active.model}")
+                    print(f"🌡️  Temperature: {active.temperature}")
+            else:
+                print(f"❌ Failed to select assistant '{args.assistant_name}'")
+                print("💡 Use 'ward ai list' to see available assistants")
+                return 1
+        elif args.ai_action is None:
+            # No subcommand provided - show current status
+            active = self.ai_manager.get_active_assistant()
+            if active:
+                print(f"🤖 Current AI Assistant: {active.name}")
+                print(f"📝 Model: {active.model}")
+                print(f"🌡️  Temperature: {active.temperature}")
+            else:
+                print("⚪ No AI assistant selected")
+                print("💡 Use 'ward ai list' to see available assistants")
+                print("💡 Use 'ward ai select <name>' to select an assistant")
+        else:
+            print(f"Unknown AI command: {args.ai_action}")
+            return 1
+
+        return 0
+
+    def handle_activate_command(self) -> int:
+        """Activate Ward Shell mode (AI-assisted)"""
+        print("🛡️ Activating Ward Shell Mode...")
+        print("🤖 AI Assistant integration enabled")
+        print("📋 All commands will be processed through AI assistant")
+
+        # Check if AI assistant is configured
+        active_assistant = self.ai_manager.get_active_assistant()
+        if not active_assistant or active_assistant.type == AssistantType.NONE:
+            print("⚠️  No AI assistant configured!")
+            print("💡 Configure an AI assistant first:")
+            print("   ward ai list           # Show available assistants")
+            print("   ward ai select <name>  # Select an assistant")
+            print()
+            print("🔄 Continuing with local processing...")
+
+        self.ward_shell_mode = True
+
+        # Save original PS1 if not already saved
+        original_ps1 = os.environ.get("WARD_ORIGINAL_PS1")
+        if not original_ps1:
+            original_ps1 = os.environ.get("PS1", "")
+            os.environ["WARD_ORIGINAL_PS1"] = original_ps1
+
+        # Create Ward Shell enhanced prompt
+        current_ps1 = os.environ.get("PS1", "")
+        ward_prefix = "🛡️⚡️ "  # Shield + lightning for AI mode
+
+        # Check if Ward prefix already exists
+        if ward_prefix not in current_ps1:
+            new_ps1 = f"{ward_prefix}{current_ps1}"
+            os.environ["PS1"] = new_ps1
+
+            # Create Ward Shell activation script
+            activation_script = Path.home() / ".ward-shell-activate.sh"
+            with open(activation_script, 'w') as f:
+                f.write(f"""#!/bin/bash
+# Ward Shell Activation (AI Assistant Mode)
+export WARD_SHELL_MODE=true
+export WARD_ORIGINAL_PS1="${{WARD_ORIGINAL_PS1:-$PS1}}"
+export PS1="{new_ps1}"
+echo "🛡️⚡️ Ward Shell activated (AI Assistant Mode)"
+echo "💡 All commands processed through AI assistant"
+echo "🔧 Use 'ward deactivate' to return to normal terminal"
+""")
+            activation_script.chmod(0o755)
+
+            print("✅ Ward Shell activated!")
+            print(f"📌 Original prompt saved")
+            print(f"🤖 AI Assistant: {active_assistant.name if active_assistant else 'Local Processing'}")
+            print("💡 Your prompt now shows 🛡️⚡️ to indicate Ward Shell mode")
+            print("🔧 All natural language commands are AI-assisted")
+            print()
+            print("To return to normal terminal:")
+            print("   ward deactivate")
+            print()
+            print("⚠️  Note: For permanent prompt changes, run:")
+            print(f"   source {activation_script}")
+            return 0
+        else:
+            print("✅ Ward Shell is already active!")
+            return 1
+
+    def handle_deactivate_command(self) -> int:
+        """Deactivate Ward Shell mode (return to normal terminal)"""
+        print("🔓 Deactivating Ward Shell Mode...")
+        print("💻 Returning to normal terminal mode")
+
+        self.ward_shell_mode = False
+
+        try:
+            # Restore original PS1
+            original_ps1 = os.environ.get("WARD_ORIGINAL_PS1")
+            if original_ps1:
+                os.environ["PS1"] = original_ps1
+                print("✅ Original prompt restored!")
+                print("💻 Normal terminal mode activated")
+            else:
+                print("⚠️  No original prompt found - keeping current prompt")
+
+            # Remove activation script if it exists
+            activation_script = Path.home() / ".ward-shell-activate.sh"
+            if activation_script.exists():
+                activation_script.unlink()
+                print("🗑️  Ward Shell activation script removed")
+
+            # Clear shell mode environment variable
+            if "WARD_SHELL_MODE" in os.environ:
+                del os.environ["WARD_SHELL_MODE"]
+
+            print("🔓 Ward Shell deactivated")
+            print("💻 Natural language commands now use local processing")
+            print("🤖 AI assistants still available via MCP")
+            return 0
+
+        except Exception as e:
+            print(f"❌ Error deactivating Ward Shell: {e}")
+            return 1
+
+    def handle_process_command(self, args) -> int:
+        """Handle natural language command processing with JSON output"""
+        result = self.process_natural_command(args.command)
+
+        # Output as JSON for programmatic use
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0
+
+    def process_natural_command(self, user_input: str) -> Dict[str, Any]:
+        """Process natural language command based on current mode"""
+        if self.ward_shell_mode:
+            # Ward Shell mode - use AI assistant
+            return self.ai_manager.process_command_with_ai(user_input)
+        else:
+            # Normal terminal mode - use local processing with JSON output
+            result = self.ai_manager._local_command_processing(user_input)
+            # Add mode information
+            result["mode"] = "terminal"
+            result["processing"] = "local"
+            return result
 
     def main(self) -> int:
         """Main CLI entry point - simplified interface"""
@@ -475,9 +648,21 @@ class WardCLI:
         # MCP server command
         subparsers.add_parser("mcp-server", help="Run Ward as MCP server")
 
-        # Environment activation
-        subparsers.add_parser("activate", help="Activate Ward environment with prompt enhancement")
-        subparsers.add_parser("deactivate", help="Deactivate Ward environment and restore prompt")
+        # AI Assistant commands
+        ai_parser = subparsers.add_parser("ai", help="Manage AI assistants")
+        ai_subparsers = ai_parser.add_subparsers(dest="ai_action")
+
+        ai_list_parser = ai_subparsers.add_parser("list", help="List available AI assistants")
+        ai_select_parser = ai_subparsers.add_parser("select", help="Select AI assistant")
+        ai_select_parser.add_argument("assistant_name", help="Name of assistant to select")
+
+        # Environment activation (new mode system)
+        activate_parser = subparsers.add_parser("activate", help="Activate Ward Shell mode (AI-assisted)")
+        deactivate_parser = subparsers.add_parser("deactivate", help="Deactivate Ward Shell mode (normal terminal)")
+
+        # Natural language processing
+        process_parser = subparsers.add_parser("process", help="Process natural language command (JSON output)")
+        process_parser.add_argument("command", help="Natural language command to process")
 
         # Interactive mode
         subparsers.add_parser("interactive", help="Start interactive Ward management mode")
@@ -490,6 +675,14 @@ class WardCLI:
         # Handle commands
         if args.command == "mcp-server":
             return self.run_mcp_server()
+        elif args.command == "ai":
+            return self.handle_ai_command(args)
+        elif args.command == "activate":
+            return self.handle_activate_command()
+        elif args.command == "deactivate":
+            return self.handle_deactivate_command()
+        elif args.command == "process":
+            return self.handle_process_command(args)
         elif args.command == "interactive":
             return self.handle_interactive_mode()
         elif args.command is None:
