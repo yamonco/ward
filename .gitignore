@@ -222,12 +222,14 @@ credentials.json
 .env.local
 .env.production
 
-# Backup files
+# Backup files (exclude sensitive backups, keep configuration backups)
+# Exclude sensitive binary backups
 *.bak
-*.backup
 *.old
 *.orig
 *.rej
+# Keep config backup files (they're useful for rollbacks)
+# *.backup.* - commented out to allow configuration backups
 
 # Local development
 local/
@@ -242,16 +244,20 @@ node_modules/
 .yarn/
 .pip-cache/
 
-# Large binary files (excluding images)
-*.tar.gz
-*.zip
-*.rar
-*.7z
+# Large binary files (excluding images and distribution)
+# Keep distribution archives and installation scripts
+# Exclude only large binaries that shouldn't be in repo
 *.exe
 *.dmg
 *.pkg
+*.deb
+*.rpm
 
 # System caches
 .cache/
 tmp/
 temp/
+
+# IDE and editor history files
+.history/
+.vscode/settings.backup.*
