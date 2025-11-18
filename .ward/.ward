@@ -1,0 +1,12 @@
+# goldentemplate 레포 전체 와드 샘플
+이 파일은 레포 전체에 대한 기본 정책을 정의합니다.
+
+@description: 이 레포는 실험적 구조와 다양한 샘플 코드를 포함합니다. 구조를 변경할 때는 반드시 README와 정책을 확인하세요.
+@prompt: "새로운 디렉터리나 파일을 만들기 전에 반드시 팀과 상의하세요."
+@whitelist: ls cat mkdir
+@blacklist: rm mv cp
+@lock_new_dirs: true
+@lock_writes: false
+@explain_on_error: true
+
+추가 설명이나 온보딩 메모는 자유롭게 여기에 작성할 수 있습니다.
