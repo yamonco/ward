@@ -613,6 +613,11 @@ echo "🔧 Use 'ward deactivate' to return to normal terminal"
         info_parser = subparsers.add_parser("info", help="Get Ward information")
         info_parser.add_argument("path", help="Path to check")
 
+        # Protected folders command
+        protect_parser = subparsers.add_parser("protect", help="Add protected folders to Ward")
+        protect_parser.add_argument("folders", nargs="+", help="List of folder names to protect within the Ward directory")
+        protect_parser.add_argument("--path", default=".", help="Base path (defaults to current directory)")
+
         # Add command with subcommands
         add_parser = subparsers.add_parser("add", help="Add various items to Ward")
         add_subparsers = add_parser.add_subparsers(dest="add_action")
@@ -714,6 +719,8 @@ echo "🔧 Use 'ward deactivate' to return to normal terminal"
             return self.handle_ward_info_command(args)
         elif args.command == "add":
             return self.handle_add_command(args)
+        elif args.command == "protect":
+            return self.handle_protect_command(args)
         elif args.command == "search":
             return self.handle_search_command(args)
         elif args.command == "bookmark":
@@ -1008,32 +1015,74 @@ echo "🔧 Use 'ward deactivate' to return to normal terminal"
 
     def ward_info_cli(self, path: str) -> int:
         """Get Ward info via CLI"""
-        info = self.planter.get_ward_info(path)
+        from .ward_config import WardConfigParser, FolderProtector
 
-        if not info["protected"]:
+        target_path = Path(path).resolve()
+        ward_file = target_path / ".ward"
+
+        if not ward_file.exists():
             print(f"❌ No Ward found at: {path}")
+            return 1
+
+        # Parse Ward configuration
+        parser = WardConfigParser()
+        config = parser.parse_file(str(ward_file))
+
+        if not config:
+            print(f"❌ Failed to parse Ward configuration: {ward_file}")
             return 1
 
         print(f"🛡️ Ward Information for: {path}")
         print("=" * 50)
         print()
-        print(f"📁 Ward file: {info['ward_file']}")
-        print(f"🔐 Password protected: {'Yes' if info['password_protected'] else 'No'}")
+        print(f"📁 Ward file: {ward_file}")
+        print(f"🔐 Password protected: {'Yes' if config.password_protected else 'No'}")
+        print(f"🤖 AI initiated: {'Yes' if config.ai_initiated else 'No'}")
 
-        if info["password_protected"]:
-            print(f"🗝️ Password file: {info['password_file']}")
-            print()
+        if config.created:
+            print(f"📅 Created: {config.created}")
+
+        if config.shell:
+            print(f"🐚 Shell: {config.shell}")
+        if config.theme:
+            print(f"🎨 Theme: {config.theme}")
+
+        # Security policy
+        print(f"\n🔒 Security Policy:")
+        print(f"   Whitelist: {len(config.whitelist)} commands")
+        print(f"   Blacklist: {len(config.blacklist)} commands")
+        print(f"   AI guidance: {'Enabled' if config.ai_guidance else 'Disabled'}")
+
+        # Protected folders (new feature)
+        if config.protected_folders:
+            print(f"\n🛡️ Protected Folders ({len(config.protected_folders)}):")
+            protector = FolderProtector(str(target_path), config.protected_folders)
+
+            for folder in config.protected_folders:
+                folder_path = target_path / folder
+                status = "✅" if folder_path.exists() else "⚠️ "
+                print(f"   {status} {folder}")
+
+            print(f"\n📋 Protection Summary:")
+            summary = protector.get_protection_summary()
+            print(f"   Base path: {summary['base_path']}")
+            print(f"   Total protected: {summary['total_protected']}")
+        else:
+            print(f"\n🛡️ Protected Folders: None configured")
+            print("💡 Use 'ward protect <folder1> <folder2> ...' to add protected folders")
+
+        # Comments configuration
+        if config.allow_comments:
+            print(f"\n💬 Comments: Enabled (max: {config.max_comments})")
+            if config.comment_prompt:
+                print(f"   Prompt: {config.comment_prompt}")
+        else:
+            print(f"\n💬 Comments: Disabled")
+
+        if config.password_protected:
+            print(f"\n🗝️ Password file: ~/.ward/ward_passwords.json")
             print("⚠️ WARNING: This Ward is password-protected.")
             print("Manual user intervention required for removal.")
-
-        if info.get("readable"):
-            print()
-            print("📄 Ward Policy Content:")
-            print("-" * 30)
-            print(info.get("content", "Unable to read content"))
-        else:
-            print()
-            print("❌ Ward policy file is not readable (permissions issue)")
 
         return 0
 
@@ -1146,6 +1195,97 @@ echo "🔧 Use 'ward deactivate' to return to normal terminal"
             return 1
         else:
             print(f"Unknown add command: {args.add_action}", file=sys.stderr)
+            return 1
+
+    def handle_protect_command(self, args) -> int:
+        """Handle protect command - add protected folders to Ward"""
+        from .ward_config import WardConfigParser, FolderProtector
+
+        base_path = Path(args.path).resolve()
+        folders_to_protect = args.folders
+
+        # Check if Ward exists in the base path
+        ward_file = base_path / ".ward"
+        if not ward_file.exists():
+            print(f"❌ No Ward found in: {base_path}")
+            print("💡 Initialize Ward first: ward init")
+            return 1
+
+        # Validate that folders exist
+        missing_folders = []
+        for folder in folders_to_protect:
+            folder_path = base_path / folder
+            if not folder_path.exists():
+                missing_folders.append(folder)
+            elif not folder_path.is_dir():
+                missing_folders.append(f"{folder} (not a directory)")
+
+        if missing_folders:
+            print("❌ The following folders don't exist:")
+            for folder in missing_folders:
+                print(f"   - {folder}")
+            print()
+            print("💡 Available folders in this directory:")
+            try:
+                for item in base_path.iterdir():
+                    if item.is_dir() and not item.name.startswith('.'):
+                        print(f"   - {item.name}")
+            except Exception:
+                pass
+            return 1
+
+        # Parse existing Ward configuration
+        parser = WardConfigParser()
+        config = parser.parse_file(str(ward_file))
+        if not config:
+            print(f"❌ Failed to parse Ward configuration: {ward_file}")
+            return 1
+
+        # Update protected_folders
+        existing_folders = set(config.protected_folders) if config.protected_folders else set()
+        new_folders = set(folders_to_protect)
+
+        # Check for duplicates
+        duplicates = existing_folders.intersection(new_folders)
+        if duplicates:
+            print("⚠️  The following folders are already protected:")
+            for folder in duplicates:
+                print(f"   - {folder}")
+
+        # Add new folders
+        added_folders = new_folders - existing_folders
+        if not added_folders:
+            print("ℹ️  No new folders to protect")
+            return 0
+
+        config.protected_folders = list(existing_folders.union(new_folders))
+
+        # Write updated configuration
+        try:
+            updated_content = parser.generate_content(config)
+            with open(ward_file, 'w', encoding='utf-8') as f:
+                f.write(updated_content)
+
+            print(f"✅ Protected folders added successfully!")
+            print(f"📍 Base directory: {base_path}")
+            print(f"🔒 New protected folders:")
+            for folder in added_folders:
+                print(f"   - {folder}")
+
+            print(f"\n📋 Current protected folders ({len(config.protected_folders)}):")
+            for folder in config.protected_folders:
+                print(f"   - {folder}")
+
+            # Test folder protection
+            protector = FolderProtector(str(base_path), config.protected_folders)
+            print(f"\n🛡️  Protection Summary:")
+            summary = protector.get_protection_summary()
+            print(f"   Total protected folders: {summary['total_protected']}")
+
+            return 0
+
+        except Exception as e:
+            print(f"❌ Failed to update Ward configuration: {e}", file=sys.stderr)
             return 1
 
     def handle_search_command(self, args) -> int:
