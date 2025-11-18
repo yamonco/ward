@@ -220,28 +220,70 @@ class WardCLI:
         print("🤖 Ward MCP Server Status")
         print("=" * 30)
 
-        if not self.mcp_server_path.exists():
+        # Check multiple potential MCP server locations
+        mcp_paths = [
+            self.mcp_server_path,  # ~/.ward/mcp/mcp_server.py
+            Path.home() / ".local/share/uv/tools/ward-security/lib/python3.11/site-packages/ward_security/mcp_server.py",
+            Path(__file__).parent / "mcp_server.py",  # Same directory as CLI
+        ]
+
+        mcp_found = False
+        mcp_location = None
+
+        for mcp_path in mcp_paths:
+            if mcp_path.exists():
+                mcp_found = True
+                mcp_location = mcp_path
+                break
+
+        if not mcp_found:
             print("❌ MCP server not found")
-            print(f"Expected at: {self.mcp_server_path}")
+            print("Checked locations:")
+            for mcp_path in mcp_paths:
+                print(f"  • {mcp_path}")
             return 1
 
         try:
             # Test if MCP server can be imported
-            import sys
-            sys.path.insert(0, str(self.mcp_server_path.parent))
-
-            # Simple import test
             import subprocess
-            result = subprocess.run(
-                [sys.executable, "-c", "from mcp_server import app; print('✅ MCP server can be imported')"],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
+
+            # Test if the MCP server file exists and can be executed as Python
+            if mcp_location.name == "mcp_server.py":
+                # Test basic Python syntax by trying to compile the file
+                result = subprocess.run(
+                    [sys.executable, "-m", "py_compile", str(mcp_location)],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+
+                if result.returncode == 0:
+                    print("✅ MCP server file is valid Python")
+                else:
+                    print("❌ MCP server file has syntax errors")
+                    print("Error:", result.stderr)
+                    return 1
+            else:
+                # Test direct import from the found location
+                result = subprocess.run(
+                    [sys.executable, "-c", f"import sys; sys.path.insert(0, '{mcp_location.parent}'); from ward_security.mcp_server import app; print('✅ MCP server can be imported')"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
 
             if result.returncode == 0:
                 print("✅ MCP server is properly configured")
-                print(f"📍 Location: {self.mcp_server_path}")
+                print(f"📍 Location: {mcp_location}")
+                print("🚀 Ready for AI assistant integration")
+
+                # Check if MCP dependencies are available
+                try:
+                    import mcp
+                    print("✅ MCP library available")
+                except ImportError:
+                    print("⚠️  MCP library not found - install with: pip install mcp")
+
                 return 0
             else:
                 print("❌ MCP server configuration error")
@@ -273,15 +315,34 @@ class WardCLI:
         print("🧪 Testing Ward MCP Server")
         print("=" * 30)
 
-        if not self.mcp_server_path.exists():
-            print("❌ MCP server not found. Please run setup first.")
+        # Check multiple potential MCP server locations (same logic as mcp_status)
+        mcp_paths = [
+            self.mcp_server_path,  # ~/.ward/mcp/mcp_server.py
+            Path.home() / ".local/share/uv/tools/ward-security/lib/python3.11/site-packages/ward_security/mcp_server.py",
+            Path(__file__).parent / "mcp_server.py",  # Same directory as CLI
+        ]
+
+        mcp_found = False
+        mcp_location = None
+
+        for mcp_path in mcp_paths:
+            if mcp_path.exists():
+                mcp_found = True
+                mcp_location = mcp_path
+                break
+
+        if not mcp_found:
+            print("❌ MCP server not found")
+            print("Checked locations:")
+            for mcp_path in mcp_paths:
+                print(f"  • {mcp_path}")
             return 1
 
         try:
             # Test basic MCP server functionality
             result = subprocess.run(
-                [sys.executable, str(self.mcp_server_path)],
-                input='{"jsonrpc": "2.0", "id": 1, "method": "initialize"}',
+                [sys.executable, str(mcp_location)],
+                input='{"jsonrpc": "2.0", "id": 1, "method": "initialize"}\n',
                 capture_output=True,
                 text=True,
                 timeout=10
@@ -290,10 +351,13 @@ class WardCLI:
             if "result" in result.stdout or "error" in result.stdout:
                 print("✅ MCP server is responding correctly")
                 print("🔧 Ready for AI assistant integration")
+                print(f"📍 Location: {mcp_location}")
                 return 0
             else:
                 print("❌ MCP server not responding properly")
                 print("Output:", result.stdout)
+                if result.stderr:
+                    print("Error:", result.stderr)
                 return 1
 
         except subprocess.TimeoutExpired:
@@ -489,12 +553,20 @@ class WardCLI:
 
     def handle_bookmark_command(self, args) -> int:
         """Handle bookmark command"""
-        if args.bookmark_action == "add" or args.bookmark_action is None:
+        if args.bookmark_action == "add":
             tags = [tag.strip() for tag in args.tags.split(",")] if args.tags else []
             return self.add_bookmark(args.path, args.category, args.name, args.desc or "", tags)
         elif args.bookmark_action == "list":
             tags = [tag.strip() for tag in args.tags.split(",")] if args.tags else []
             return self.list_bookmarks(args.category or "", tags)
+        elif args.bookmark_action is None:
+            # No subcommand provided - show usage
+            print("Usage: ward bookmark <subcommand> [options]")
+            print("Subcommands:")
+            print("  add    Add a new bookmark")
+            print("  list   List existing bookmarks")
+            print("\nUse 'ward bookmark <subcommand> --help' for detailed help")
+            return 1
         else:
             print(f"Unknown bookmark command: {args.bookmark_action}", file=sys.stderr)
             return 1
