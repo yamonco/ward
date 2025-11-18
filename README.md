@@ -81,26 +81,43 @@ ward> 💡 Educational hints provided for each command
 
 ## 📦 Installation
 
-### Using UV (Recommended)
+**🔒 Security Notice**: Ward is designed for **local installation only** to prevent accidental global system access and maintain security boundaries. Global installation is intentionally disabled.
+
+### Local Installation (Recommended)
 ```bash
-# Install as a tool
-uv tool install --from git+https://github.com/yamonco/ward.git ward
+# Clone the repository
+git clone https://github.com/yamonco/ward.git
+cd ward
 
-# Or run directly without installation
-uvx --from git+https://github.com/yamonco/ward.git ward-cli status
-
-# Initialize for AI interaction
-ward-init ai-project
-cd ai-project
+# Run local installation script
+./setup-ward.sh
 ```
 
-### Direct Download
+### Using UV for Development Only
 ```bash
-# Download and install
-wget https://github.com/yamonco/ward/releases/latest/download/ward-bash.tar.gz
-tar -xzf ward-bash.tar.gz
-cd ward-bash
-./setup-ward.sh
+# For development or testing only (not for production use)
+uvx --from git+https://github.com/yamonco/ward.git python -m ward_security.cli --help
+
+# Note: This is for temporary use only. For permanent installation, use the setup script.
+```
+
+### What the Setup Script Does:
+- ✅ Installs Ward to `~/.ward/` (local only)
+- ✅ Creates local wrapper at `~/.local/bin/ward` (optional)
+- ✅ Sets up MCP server for AI integration
+- ✅ **No global system changes**
+- ✅ **No PATH modifications**
+- ✅ **No system-wide installations**
+
+### After Installation:
+```bash
+# Use Ward directly
+~/.ward/ward --version
+
+# Or add local bin to PATH (optional)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+ward --version
 ```
 
 ## 🏁 Quick Start with AI

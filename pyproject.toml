@@ -63,11 +63,9 @@ Repository = "https://github.com/yamonco/ward.git"
 "Bug Tracker" = "https://github.com/yamonco/ward/issues"
 Changelog = "https://github.com/yamonco/ward/blob/main/CHANGELOG.md"
 
-[project.scripts]
-ward = "ward_security.cli:main"
-ward-cli = "ward_security.cli:main"
-ward-shell = "ward_security.shell:main"
-ward-init = "ward_security.installer:main"
+# Note: Ward is designed for local installation only
+# Global installation is intentionally disabled for security reasons
+# Please use ./setup-ward.sh for local installation
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -138,23 +138,41 @@ print_status "Setting up MCP integration..."
 install_mcp_dependencies
 install_mcp_server
 
-# Add to PATH in various shell configs
-update_shell_config() {
-    local config_file="$1"
-    local shell_name="$2"
+# Ward is intentionally local-only - no global PATH modification
+print_warning "Ward is installed locally only - no global PATH changes made"
+print_status "This prevents accidental global access and maintains security boundaries"
 
-    if [ -f "$config_file" ] && ! grep -q "$INSTALL_DIR" "$config_file"; then
-        echo "" >> "$config_file"
-        echo "# Ward Security System" >> "$config_file"
-        echo "export PATH=\"$INSTALL_DIR:\$PATH\"" >> "$config_file"
-        print_status "Added to $shell_name configuration"
+# Create local wrapper script for user convenience
+create_local_wrapper() {
+    local wrapper_dir="$HOME/.local/bin"
+    if [ ! -d "$wrapper_dir" ]; then
+        mkdir -p "$wrapper_dir"
     fi
+
+    # Create local ward wrapper that points to installation
+    cat > "$wrapper_dir/ward" << EOF
+#!/bin/bash
+# Ward Security System - Local Wrapper
+# This wrapper ensures Ward runs from its local installation
+
+WARD_HOME="$INSTALL_DIR"
+
+if [ ! -d "\$WARD_HOME" ]; then
+    echo "❌ Ward installation not found at \$WARD_HOME"
+    echo "Please run ./setup-ward.sh from the Ward source directory"
+    exit 1
+fi
+
+# Execute ward from local installation
+exec "\$WARD_HOME/ward" "\$@"
+EOF
+
+    chmod +x "$wrapper_dir/ward"
+    print_status "Local wrapper created at $wrapper_dir/ward"
 }
 
-print_status "Updating shell configurations..."
-update_shell_config "$HOME/.bashrc" "Bash"
-update_shell_config "$HOME/.zshrc" "Zsh"
-update_shell_config "$HOME/.profile" "Profile"
+# Create local wrapper for user convenience
+create_local_wrapper
 
 # Create a sample .ward file in user's home directory (optional)
 SAMPLE_WARD="$HOME/.ward_example"
@@ -174,21 +192,26 @@ fi
 
 # Installation complete
 echo ""
-echo -e "${GREEN}🎉 Ward Security System installed successfully!${NC}"
+echo -e "${GREEN}🎉 Ward Security System installed locally!${NC}"
+echo ""
+echo -e "${BLUE}🔒 Security Notice:${NC}"
+echo "Ward is installed locally only - no global system changes made"
+echo "This prevents accidental global access and maintains security boundaries"
 echo ""
 echo -e "${BLUE}Next steps:${NC}"
-echo "1. Restart your terminal or run:"
-echo -e "   ${YELLOW}export PATH=\"$INSTALL_DIR:\$PATH\"${NC}"
+echo "1. Add local bin to PATH (optional, for convenience only):"
+echo -e "   ${YELLOW}echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> \$HOME/.bashrc${NC}"
+echo -e "   ${YELLOW}source \$HOME/.bashrc${NC}"
 echo ""
-echo "2. Verify installation:"
-echo -e "   ${YELLOW}ward --version${NC}"
+echo "2. Or use Ward directly from its installation:"
+echo -e "   ${YELLOW}$INSTALL_DIR/ward --version${NC}"
 echo ""
 echo "3. Check system status:"
-echo -e "   ${YELLOW}ward-cli status${NC}"
+echo -e "   ${YELLOW}$INSTALL_DIR/ward-cli status${NC}"
 echo ""
 echo "4. Initialize your first project:"
 echo -e "   ${YELLOW}mkdir my-secure-project && cd my-secure-project${NC}"
-echo -e "   ${YELLOW}ward-init --here${NC}"
+echo -e "   ${YELLOW}$INSTALL_DIR/ward-init --here${NC}"
 echo ""
 echo "5. For more help:"
 echo -e "   ${YELLOW}ward-cli help${NC}"
