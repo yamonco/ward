@@ -111,10 +111,16 @@ class WardCLI:
         # Core commands
         subparsers.add_parser("status", help="Show Ward system status")
         subparsers.add_parser("validate", help="Validate security policies")
+        subparsers.add_parser("init", help="Initialize Ward in a directory")
 
         # Path analysis
         check_parser = subparsers.add_parser("check", help="Check security policies for path")
         check_parser.add_argument("path", nargs="?", default=".", help="Path to check (default: current directory)")
+
+        # Init command
+        init_parser = subparsers.add_parser("init", help="Initialize Ward in a directory")
+        init_parser.add_argument("path", nargs="?", default=".", help="Directory path to initialize (default: current directory)")
+        init_parser.add_argument("--description", help="Custom description for the Ward policy")
 
         # MCP integration
         subparsers.add_parser("mcp-status", help="Check MCP server status")
@@ -197,6 +203,8 @@ class WardCLI:
                 return 1
 
             return self.run_ward_command(["check", args.path])
+        elif args.command == "init":
+            return self.handle_init_command(args)
         elif args.command == "mcp-status":
             return self.mcp_status()
         elif args.command == "mcp-test":
@@ -735,6 +743,60 @@ class WardCLI:
             print(f"   🔧 Action: {entry['action']}")
             print()
 
+        return 0
+
+    def handle_init_command(self, args) -> int:
+        """Handle init command with legacy installation warnings"""
+        path = args.path or "."
+
+        # Check for legacy installations and warn user
+        legacy_ward = Path.home() / ".ward"
+        local_bin_ward = Path.home() / ".local/bin" / "ward"
+
+        if legacy_ward.exists():
+            print("⚠️  WARNING: Legacy Ward installation detected!")
+            print(f"   Found at: {legacy_ward}")
+            print("   This may cause conflicts with UV installation")
+            print("   Consider removing with: rm -rf ~/.ward")
+            print()
+
+        if local_bin_ward.exists() or local_bin_ward.is_symlink():
+            print("⚠️  WARNING: Legacy Ward binary found!")
+            print(f"   Found at: {local_bin_ward}")
+            print("   This may cause conflicts with UV installation")
+            print("   Consider removing with: rm -f ~/.local/bin/ward")
+            print()
+
+        # Create directory if it doesn't exist
+        target_path = Path(path).resolve()
+        target_path.mkdir(parents=True, exist_ok=True)
+
+        # Check if .ward already exists
+        ward_file = target_path / ".ward"
+        if ward_file.exists():
+            print(f"❌ .ward file already exists in {path}")
+            return 1
+
+        # Create basic .ward file content
+        description = getattr(args, 'description', 'AI-Assisted Development Project')
+        ward_content = f"""# Ward Security Configuration
+@description: {description}
+@whitelist: ls cat pwd echo grep sed awk git python npm node code vim
+@blacklist: rm -rf / sudo su chmod chown docker kubectl
+@allow_comments: true
+@max_comments: 5
+@comment_prompt: "Explain changes from a security perspective"
+"""
+
+        # Write .ward file
+        with open(ward_file, 'w') as f:
+            f.write(ward_content)
+
+        print(f"✅ Ward initialized in {path}")
+        print(f"📁 Policy file: {ward_file}")
+        print()
+        print("💡 Tip: Use UV-installed Ward for best experience:")
+        print("   export PATH=\"$HOME/.local/share/uv/tools/ward-security/bin:$PATH\"")
         return 0
 
 def main() -> int:
