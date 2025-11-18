@@ -263,11 +263,152 @@ ward-cli ai report --format markdown --include-suggestions
 ### Team C: Multi-AI Environment
 > *"With Claude, Copilot, and ChatGPT all working on our codebase, Ward provides the unified safety layer we need. The AI-specific policies and monitoring give us confidence in our AI-assisted development."* - Engineering Manager
 
+## 🔧 MCP Integration for AI Assistants
+
+Ward now provides **Model Context Protocol (MCP)** integration, enabling direct communication with AI assistants through a standardized protocol.
+
+### 🤖 What is MCP Integration?
+
+MCP allows AI assistants to:
+- **Directly access** Ward security tools without shell interaction
+- **Execute security operations** through standardized API calls
+- **Receive real-time feedback** on policy compliance
+- **Work more efficiently** with built-in AI guidance
+
+### 🚀 Quick MCP Setup
+
+#### Step 1: Install Ward with MCP Support
+```bash
+# Install Ward with MCP integration
+./setup-ward.sh
+
+# The setup automatically installs:
+# ✅ MCP server
+# ✅ Required Python dependencies (mcp, fastmcp)
+# ✅ MCP configuration files
+# ✅ Ward CLI tools for AI management
+```
+
+#### Step 2: Configure Claude Desktop
+```bash
+# Automatic Claude Desktop setup
+./configure-claude-desktop.sh
+
+# Manual configuration for other platforms:
+# See MCP documentation below
+```
+
+#### Step 3: Verify MCP Integration
+```bash
+# Check MCP server status
+ward mcp-status
+
+# Test MCP functionality
+ward mcp-test
+
+# Verify Claude Desktop integration
+~/.ward/validate_ward_mcp.sh
+```
+
+### 🎯 Supported AI Assistants
+
+#### Claude Desktop Integration
+```bash
+# Claude will now have access to Ward tools directly:
+claude> ward_check ./src
+claude> ward_status
+claude> ward_create_policy --description "AI development" --ai_mode enabled
+claude> ward_allow_operation --operation file_modification --justification "Bug fixes"
+```
+
+#### Custom AI Integration
+```python
+# Any MCP-compatible AI can use Ward tools
+from mcp import Client
+
+async def use_ward():
+    client = Client()
+
+    # Check security policies
+    result = await client.call_tool("ward_check", {"path": "./src"})
+    print(result.content[0].text)
+
+    # Get system status
+    status = await client.call_tool("ward_status", {})
+    print(status.content[0].text)
+```
+
+### 📋 MCP Tools Available
+
+| Tool | Description | Use Case |
+|------|-------------|---------|
+| `ward_check` | Check security policies for a path | Verify AI access before operations |
+| `ward_status` | Get overall Ward system status | Monitor security state |
+| `ward_validate` | Validate all security policies | Ensure policy consistency |
+| `ward_allow_operation` | Allow specific AI operations | Grant temporary permissions |
+| `ward_ai_log` | Get recent AI activity log | Monitor AI behavior |
+| `ward_create_policy` | Create security policies | Set up project constraints |
+
+### 🔧 Advanced MCP Configuration
+
+#### Claude Desktop Configuration
+```json
+{
+  "mcpServers": {
+    "ward-security": {
+      "command": "python3",
+      "args": ["/Users/username/.ward/mcp/mcp_server.py"],
+      "description": "Ward Security System - AI Assistant Protection"
+    }
+  }
+}
+```
+
+#### Custom MCP Client Setup
+```python
+# ward_mcp_client.py
+import asyncio
+from mcp import Client
+
+class WardSecurityClient:
+    def __init__(self):
+        self.client = Client()
+
+    async def check_path(self, path: str):
+        """Check if path is safe for AI operations"""
+        result = await self.client.call_tool("ward_check", {"path": path})
+        return result.content[0].text
+
+    async def create_safe_policy(self, description: str, ai_mode: str = "enabled"):
+        """Create AI-safe policy"""
+        return await self.client.call_tool("ward_create_policy", {
+            "description": description,
+            "ai_mode": ai_mode,
+            "whitelist": ["ls", "cat", "grep", "python", "git"],
+            "ai_guidance": True
+        })
+```
+
+### 🎯 MCP Integration Benefits
+
+- **🚀 Faster AI Response**: Direct API calls without shell overhead
+- **🛡️ Enhanced Security**: Policy validation at MCP level
+- **📊 Better Monitoring**: Structured logging and audit trails
+- **🔧 Flexible Integration**: Works with any MCP-compatible AI
+- **⚡ Real-time Feedback**: Immediate policy compliance checking
+
+### 📚 MCP Documentation
+
+- [MCP Protocol Specification](https://modelcontextprotocol.io/)
+- [Claude Desktop Integration Guide](https://github.com/anthropics/claude-desktop)
+- [Ward MCP Tools Documentation](./docs/mcp-tools.md)
+- [MCP Client Examples](./examples/mcp-clients/)
+
 ## 🚀 Getting Started with AI
 
 1. **Install Ward** in your development environment
-2. **Create AI-safe project** policies
-3. **Enable AI assistance mode** with `ward-shell`
+2. **Set up MCP integration** for your AI assistant
+3. **Create AI-safe project** policies
 4. **Start collaborating** with your AI assistants
 5. **Monitor and refine** AI interactions over time
 

@@ -73,6 +73,71 @@ chmod +x "$INSTALL_DIR"/core/*.sh
 chmod +x "$INSTALL_DIR"/ward
 chmod +x "$INSTALL_DIR"/ward-init
 
+# Install MCP server
+install_mcp_server() {
+    print_status "Installing Ward MCP Server..."
+
+    # Create MCP directory
+    mkdir -p "$INSTALL_DIR/mcp"
+
+    # Deploy MCP server
+    if [ -f "$SCRIPT_DIR/src/ward_security/mcp_server.py" ]; then
+        cp "$SCRIPT_DIR/src/ward_security/mcp_server.py" "$INSTALL_DIR/mcp/"
+        chmod +x "$INSTALL_DIR/mcp/mcp_server.py"
+        print_status "MCP Server installed successfully"
+
+        # Create MCP configuration
+        cat > "$INSTALL_DIR/mcp/ward.fastmcp.json" << 'EOF'
+{
+  "$schema": "https://gofastmcp.com/public/schemas/fastmcp.json/v1.json",
+  "entrypoint": "mcp_server.py",
+  "environment": {
+    "dependencies": ["mcp>=0.1.0", "click>=8.0.0", "pyyaml>=6.0"]
+  },
+  "tool_definitions": {
+    "ward_check": {
+      "description": "Check Ward policies for a path",
+      "category": "security"
+    },
+    "ward_status": {
+      "description": "Get Ward system status",
+      "category": "security"
+    },
+    "ward_allow_operation": {
+      "description": "Allow AI operation in scope",
+      "category": "authorization"
+    }
+  }
+}
+EOF
+        print_status "MCP configuration created"
+    else
+        print_warning "MCP server source not found. MCP features will be limited."
+    fi
+}
+
+# Install MCP dependencies
+install_mcp_dependencies() {
+    if command -v pip3 >/dev/null 2>&1; then
+        print_status "Installing MCP dependencies..."
+
+        # Try to install MCP dependencies
+        if pip3 install --user mcp fastmcp 2>/dev/null; then
+            print_status "MCP dependencies installed successfully"
+        else
+            print_warning "MCP dependencies installation failed. Install manually:"
+            print_warning "  pip install --user mcp fastmcp"
+        fi
+    else
+        print_warning "pip3 not found. Install Python and pip for MCP support."
+    fi
+}
+
+# Install MCP components
+print_status "Setting up MCP integration..."
+install_mcp_dependencies
+install_mcp_server
+
 # Add to PATH in various shell configs
 update_shell_config() {
     local config_file="$1"
@@ -128,8 +193,16 @@ echo ""
 echo "5. For more help:"
 echo -e "   ${YELLOW}ward-cli help${NC}"
 echo ""
+echo "6. 🤖 AI Assistant Integration (MCP):"
+echo -e "   ${YELLOW}# Test MCP server${NC}"
+echo -e "   ${YELLOW}python3 $INSTALL_DIR/mcp/mcp_server.py${NC}"
+echo ""
+echo -e "   ${YELLOW}# Configure Claude Desktop (macOS)${NC}"
+echo -e "   ${YELLOW}./configure-claude-desktop.sh${NC}"
+echo ""
 echo -e "${BLUE}Documentation:${NC} https://github.com/yamonco/ward#readme"
 echo -e "${BLUE}Issues:${NC} https://github.com/yamonco/ward/issues"
+echo -e "${BLUE}MCP Guide:${NC} https://github.com/yamonco/ward/wiki/MCP-Integration"
 echo ""
 
 # Test installation
