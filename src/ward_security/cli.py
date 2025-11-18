@@ -174,6 +174,10 @@ class WardCLI:
         # MCP server command
         subparsers.add_parser("mcp-server", help="Run Ward as MCP server")
 
+        # Environment activation
+        subparsers.add_parser("activate", help="Activate Ward environment with prompt enhancement")
+        subparsers.add_parser("deactivate", help="Deactivate Ward environment and restore prompt")
+
         # Help and version
         subparsers.add_parser("help", help="Show this help message")
 
@@ -208,6 +212,10 @@ class WardCLI:
             return self.handle_bookmark_command(args)
         elif args.command == "recent":
             return self.handle_recent_command(args)
+        elif args.command == "activate":
+            return self.handle_activate_command()
+        elif args.command == "deactivate":
+            return self.handle_deactivate_command()
         elif args.command == "help":
             parser.print_help()
             return 0
@@ -801,6 +809,95 @@ class WardCLI:
             print()
 
         return 0
+
+    def handle_activate_command(self) -> int:
+        """Activate Ward environment with prompt enhancement"""
+        print("🛡️ Activating Ward Environment...")
+
+        # Check if .ward file exists in current directory
+        current_dir = Path.cwd()
+        ward_file = current_dir / ".ward"
+
+        if not ward_file.exists():
+            print("❌ No .ward policy found in current directory")
+            print("💡 Initialize Ward first: ward init")
+            return 1
+
+        try:
+            # Save original PS1 if not already saved
+            original_ps1 = os.environ.get("WARD_ORIGINAL_PS1")
+            if not original_ps1:
+                original_ps1 = os.environ.get("PS1", "")
+                os.environ["WARD_ORIGINAL_PS1"] = original_ps1
+
+            # Create Ward-enhanced prompt
+            current_ps1 = os.environ.get("PS1", "")
+            ward_prefix = "🛡️ "
+
+            # Check if Ward prefix already exists
+            if ward_prefix not in current_ps1:
+                new_ps1 = f"{ward_prefix}{current_ps1}"
+                os.environ["PS1"] = new_ps1
+
+                # Create activation script for persistence
+                activation_script = Path.home() / ".ward-activate.sh"
+                with open(activation_script, 'w') as f:
+                    f.write(f"""#!/bin/bash
+# Ward Environment Activation
+export WARD_ACTIVE=true
+export WARD_ORIGINAL_PS1="${original_ps1}"
+export PS1="{new_ps1}"
+echo "🛡️ Ward environment activated!"
+echo "💡 Run 'ward deactivate' to restore original prompt"
+""")
+                activation_script.chmod(0o755)
+
+                print("✅ Ward environment activated!")
+                print(f"📌 Original prompt saved: {original_ps1[:50]}{'...' if len(original_ps1) > 50 else ''}")
+                print("💡 Your prompt now shows 🛡️ to indicate Ward is active")
+                print("🔧 Ward protection is now monitoring this directory")
+                print()
+                print("To restore original prompt later:")
+                print("   ward deactivate")
+                print()
+                print("⚠️  Note: For permanent prompt changes, run:")
+                print(f"   source {activation_script}")
+                return 0
+            else:
+                print("✅ Ward environment is already active!")
+                return 1
+
+        except Exception as e:
+            print(f"❌ Error activating Ward environment: {e}")
+            return 1
+
+    def handle_deactivate_command(self) -> int:
+        """Deactivate Ward environment and restore original prompt"""
+        print("🔓 Deactivating Ward Environment...")
+
+        try:
+            # Restore original PS1
+            original_ps1 = os.environ.get("WARD_ORIGINAL_PS1")
+            if original_ps1:
+                os.environ["PS1"] = original_ps1
+                print("✅ Original prompt restored!")
+                print("🛡️ Ward environment deactivated")
+
+                # Remove activation script if it exists
+                activation_script = Path.home() / ".ward-activate.sh"
+                if activation_script.exists():
+                    activation_script.unlink()
+                    print("🗑️  Activation script removed")
+
+                return 0
+            else:
+                print("⚠️  No original prompt found - cannot restore")
+                print("💡 You may need to manually reset your PS1")
+                return 1
+
+        except Exception as e:
+            print(f"❌ Error deactivating Ward environment: {e}")
+            return 1
 
     def handle_status_command(self) -> int:
         """Handle status command"""
