@@ -111,7 +111,6 @@ class WardCLI:
         # Core commands
         subparsers.add_parser("status", help="Show Ward system status")
         subparsers.add_parser("validate", help="Validate security policies")
-        subparsers.add_parser("init", help="Initialize Ward in a directory")
 
         # Path analysis
         check_parser = subparsers.add_parser("check", help="Check security policies for path")
