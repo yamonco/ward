@@ -79,7 +79,7 @@ install_ward() {
     # Prefer UVX if available
     if command -v uvx >/dev/null 2>&1; then
         info "Using UVX for installation..."
-        install_cmd="uv tool install --from git+https://github.com/yamonco/ward.git"
+        install_cmd="uv tool install git+https://github.com/yamonco/ward.git"
         success "UVX will automatically install Ward with MCP support"
     else
         info "Using pip for installation..."
@@ -170,7 +170,7 @@ if 'mcpServers' not in config:
 # Add Ward MCP server
 config['mcpServers']['ward-security'] = {
     'command': 'uvx' if command -v uvx >/dev/null 2>&1 else 'ward-mcp-server',
-    'args': ['--from', 'git+https://github.com/yamonco/ward.git', 'python', '-m', 'ward_security.mcp_server'] if command -v uvx >/dev/null 2>&1 else [],
+    'args': ['git+https://github.com/yamonco/ward.git', 'python', '-m', 'ward_security.mcp_server'] if command -v uvx >/dev/null 2>&1 else [],
     'description': 'Ward Security System - AI-powered terminal protection'
 }
 
@@ -184,7 +184,7 @@ with open('$temp_config', 'w') as f:
   "mcpServers": {
     "ward-security": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/yamonco/ward.git", "python", "-m", "ward_security.mcp_server"],
+      "args": ["git+https://github.com/yamonco/ward.git", "python", "-m", "ward_security.mcp_server"],
       "description": "Ward Security System - AI-powered terminal protection"
     }
   }
@@ -263,7 +263,7 @@ show_next_steps() {
 
     if command -v uvx >/dev/null 2>&1; then
         info "🔍 Management with UVX:"
-        echo "• Update: uv tool install --force --from git+https://github.com/yamonco/ward.git"
+        echo "• Update: uv tool install --force git+https://github.com/yamonco/ward.git"
         echo "• Remove: uv tool uninstall ward"
     else
         info "🔍 Management with pip:"

@@ -97,7 +97,7 @@ cd ward
 ### 📦 Package Installation (UVX/Pip)
 ```bash
 # Install with UVX (recommended)
-uv tool install --from git+https://github.com/yamonco/ward.git
+uv tool install git+https://github.com/yamonco/ward.git
 
 # Or install with pip
 pip install git+https://github.com/yamonco/ward.git
@@ -463,7 +463,7 @@ ward-mcp info
 ### Package Management
 ```bash
 # Update Ward
-uv tool install --force --from git+https://github.com/yamonco/ward.git
+uv tool install --force git+https://github.com/yamonco/ward.git
 # or
 pip install --upgrade git+https://github.com/yamonco/ward.git
 

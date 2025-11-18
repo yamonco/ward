@@ -173,15 +173,15 @@ class MCPInstaller:
         # Determine executable command
         if use_uvx:
             # Use uvx to run ward-mcp
-            executable_command = ["uvx", "ward-security[mcp]", "python", "-m", "ward_security.mcp_server"]
+            executable_command = ["uvx", "git+https://github.com/yamonco/ward.git", "python", "-m", "ward_security.mcp_server"]
         else:
             # Use local installation
             ward_executable = self._get_ward_executable()
             if not ward_executable:
                 click.echo("Error: Ward MCP server not found. Install with:", err=True)
-                click.echo("  uvx ward-security[mcp]", err=True)
+                click.echo("  uv tool install git+https://github.com/yamonco/ward.git", err=True)
                 click.echo("or", err=True)
-                click.echo("  pip install ward-security[mcp]", err=True)
+                click.echo("  pip install git+https://github.com/yamonco/ward.git", err=True)
                 return False
 
             executable_command = [str(ward_executable)]
@@ -499,7 +499,7 @@ def install(target):
     try:
         click.echo("📦 Installing Ward with MCP support...")
         subprocess.run([
-            "pip", "install", "ward-security[mcp]"
+            "pip", "install", "git+https://github.com/yamonco/ward.git"
         ], check=True)
 
         click.echo("✅ Ward installed successfully!")
