@@ -1,0 +1,65 @@
+#!/bin/bash
+# Ward Security System - Quick PATH setup for current session
+# Run this to immediately make Ward commands available
+
+set -euo pipefail
+
+# Colors for output
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+print_status() {
+    echo -e "${GREEN}✅${NC} $1"
+}
+
+print_info() {
+    echo -e "${BLUE}ℹ️${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠️${NC} $1"
+}
+
+echo -e "${BLUE}🔧 Ward Security System - Quick PATH Setup${NC}"
+echo -e "${BLUE}======================================${NC}"
+
+# UV tools path
+UV_TOOLS_PATH="$HOME/.local/share/uv/tools/ward-security/bin"
+
+# Check if UV tools path exists
+if [ ! -d "$UV_TOOLS_PATH" ]; then
+    print_warning "UV tools path not found: $UV_TOOLS_PATH"
+    print_info "Please run setup-ward.sh first to install Ward"
+    exit 1
+fi
+
+# Add to current session PATH
+export PATH="$UV_TOOLS_PATH:$PATH"
+
+print_status "UV tools PATH added to current session"
+print_info "Path: $UV_TOOLS_PATH"
+
+# Test if Ward command is available
+if command -v ward >/dev/null 2>&1; then
+    print_status "Ward command is now available!"
+    echo
+    print_info "Version: $(ward --version 2>/dev/null || echo 'Unknown')"
+    echo
+    print_info "Quick test:"
+    echo "  ward --version"
+    echo "  ward init"
+    echo "  ward check ."
+else
+    print_warning "Ward command not found in PATH"
+    print_info "Available tools in $UV_TOOLS_PATH:"
+    ls -la "$UV_TOOLS_PATH"
+fi
+
+echo
+print_info "For permanent PATH configuration, your shell RC file should already contain:"
+print_info "  export PATH=\"$UV_TOOLS_PATH:\$PATH\""
+
+echo
+print_info "Ward is ready to use in this terminal session!"

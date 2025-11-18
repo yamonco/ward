@@ -253,22 +253,40 @@ install_with_uv() {
 
 # Try UV installation first, fallback to local
 if install_with_uv; then
+    # Apply PATH to current session immediately
+    UV_TOOLS_PATH="$HOME/.local/share/uv/tools/ward-security/bin"
+    export PATH="$UV_TOOLS_PATH:$PATH"
+
     echo ""
     echo -e "${GREEN}🎉 Ward Security System installed with UV!${NC}"
     echo ""
-    echo -e "${BLUE}🔄 Next steps:${NC}"
-    echo "1. Reload your shell or run:"
-    echo -e "   ${YELLOW}source ~/.${SHELL##*/}rc${NC}"
+    echo -e "${BLUE}🔧 PATH configured for current session${NC}"
+    echo -e "   ${YELLOW}export PATH=\"$UV_TOOLS_PATH:\$PATH\"${NC}"
     echo ""
-    echo "2. Verify installation:"
+    echo -e "${BLUE}✅ Testing installation immediately...${NC}"
+
+    # Test Ward command immediately
+    if command -v ward >/dev/null 2>&1; then
+        echo -e "${GREEN}   ✓ Ward command is now available${NC}"
+        echo -e "   📱 Version: $(ward --version 2>/dev/null || echo 'Unknown')${NC}"
+    else
+        echo -e "${YELLOW}   ⚠️ Ward command found but may need shell reload${NC}"
+    fi
+
+    echo ""
+    echo -e "${BLUE}🔄 Next steps:${NC}"
+    echo "1. For future sessions, shell will automatically load PATH"
+    echo "2. For current session, Ward is ready to use!"
+    echo ""
+    echo "3. Verify installation:"
     echo -e "   ${YELLOW}ward --version${NC}"
     echo -e "   ${YELLOW}uv tool list | grep ward${NC}"
     echo ""
-    echo "3. Initialize your first project:"
+    echo "4. Initialize your first project:"
     echo -e "   ${YELLOW}mkdir my-secure-project && cd my-secure-project${NC}"
     echo -e "   ${YELLOW}ward init${NC}"
     echo ""
-    echo "4. 🤖 AI Assistant Integration (MCP):"
+    echo "5. 🤖 AI Assistant Integration (MCP):"
     echo -e "   ${YELLOW}# Already configured! Restart Claude Code to use Ward tools${NC}"
     echo ""
     echo -e "${BLUE}Management commands:${NC}"
@@ -313,6 +331,26 @@ echo ""
 echo -e "${BLUE}Documentation:${NC} https://github.com/yamonco/ward#readme"
 echo -e "${BLUE}Issues:${NC} https://github.com/yamonco/ward/issues"
 echo -e "${BLUE}MCP Guide:${NC} https://github.com/yamonco/ward/wiki/MCP-Integration"
+
+# If UV installation succeeded, create quick PATH setup
+if command -v uv >/dev/null 2>&1 && uv tool list | grep -q "ward-security"; then
+    print_status "Creating quick PATH setup for current session..."
+
+    # Create ward-now script
+    cat > "$HOME/.ward-now" << 'EOF'
+#!/bin/bash
+# Quick Ward PATH setup
+UV_TOOLS_PATH="$HOME/.local/share/uv/tools/ward-security/bin"
+export PATH="$UV_TOOLS_PATH:$PATH"
+echo "✅ Ward PATH configured for this session"
+echo "Available commands: ward, ward-mcp, ward-mcp-server"
+EOF
+
+    chmod +x "$HOME/.ward-now"
+    print_status "Created quick setup: ~/.ward-now"
+    print_info "Run: source ~/.ward-now"
+    print_info "Or: bash ~/.ward-now"
+fi
 echo ""
 
 # Test installation
