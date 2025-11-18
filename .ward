@@ -1,0 +1,7 @@
+# Ward Security Configuration
+@description: None
+@whitelist: ls cat pwd echo grep sed awk git python npm node code vim
+@blacklist: rm -rf / sudo su chmod chown docker kubectl
+@allow_comments: true
+@max_comments: 5
+@comment_prompt: "Explain changes from a security perspective"

@@ -94,22 +94,20 @@ cd ward
 ./install.sh
 ```
 
-### 📦 Package Installation (UVX/Pip)
+### 📦 Package Installation (UVX Only)
 ```bash
 # Install with UVX (recommended)
 uv tool install "git+https://github.com/yamonco/ward.git[mcp]"
 
-# Or install with pip
-pip install "git+https://github.com/yamonco/ward.git[mcp]"
+# Add Ward to Claude Desktop/Claude Code with UVX
+uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-code
+uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-desktop
 
-# Add Ward to Claude (super simple!)
-claude mcp add ward-security ward-mcp-server
+# Test Ward installation with UVX
+uvx --from git+https://github.com/yamonco/ward.git ward check .
 
-# Test Ward installation
-ward check .
-
-# Plant protection for a new project
-ward plant my-project
+# Initialize Ward in current directory
+uvx --from git+https://github.com/yamonco/ward.git ward init
 ```
 
 ### 🏗️ Local Development Installation
@@ -149,23 +147,24 @@ ward --version
 mkdir ai-secure-project
 cd ai-secure-project
 
-# Set up AI-friendly policies automatically
-ward init
+# Set up AI-friendly policies automatically with UVX
+uvx --from git+https://github.com/yamonco/ward.git ward init
 
 # Verify AI safety setup
-ward status
+uvx --from git+https://github.com/yamonco/ward.git ward status
 ```
 
 ### Step 2: Start AI Collaboration
 ```bash
 # Check policies for current directory
-ward check
+uvx --from git+https://github.com/yamonco/ward.git ward check
 
-# Check MCP server status for AI integration
-ward mcp-status
+# Configure Claude Desktop/Claude Code for AI integration
+uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-desktop
+uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-code
 
-# Configure Claude Desktop for direct AI integration
-ward configure-claude
+# Check MCP installation status
+uvx --from git+https://github.com/yamonco/ward.git ward-mcp status
 ```
 
 ### Step 3: AI Assistant Integration
@@ -173,8 +172,8 @@ ward configure-claude
 # Claude, Copilot, and ChatGPT can now work safely within Ward's boundaries
 # AI assistants automatically receive guidance about allowed operations
 
-# Test the simplified CLI interface
-ward help
+# Test the CLI interface
+uvx --from git+https://github.com/yamonco/ward.git ward help
 ```
 
 ## 🤖 AI Assistant Integration Examples
@@ -315,35 +314,34 @@ MCP allows AI assistants to:
 
 #### Step 1: Install Ward with MCP Support
 ```bash
-# Install Ward with MCP integration
-./setup-ward.sh
+# Install Ward with MCP integration using UVX
+uv tool install "git+https://github.com/yamonco/ward.git[mcp]"
 
-# The setup automatically installs:
+# This automatically installs:
 # ✅ MCP server
 # ✅ Required Python dependencies (mcp, fastmcp)
-# ✅ MCP configuration files
 # ✅ Ward CLI tools for AI management
 ```
 
-#### Step 2: Configure Claude Desktop
+#### Step 2: Configure Claude Desktop/Claude Code
 ```bash
-# Automatic Claude Desktop setup
-./configure-claude-desktop.sh
+# Configure Claude Desktop with UVX
+uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-desktop
 
-# Manual configuration for other platforms:
-# See MCP documentation below
+# Configure Claude Code with UVX
+uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-code
+
+# Check installation status
+uvx --from git+https://github.com/yamonco/ward.git ward-mcp status
 ```
 
 #### Step 3: Verify MCP Integration
 ```bash
 # Check MCP server status
-ward mcp-status
+uvx --from git+https://github.com/yamonco/ward.git ward-mcp status
 
-# Test MCP functionality
-ward mcp-test
-
-# Verify Claude Desktop integration
-~/.ward/validate_ward_mcp.sh
+# Show available MCP tools
+uvx --from git+https://github.com/yamonco/ward.git ward-mcp info
 ```
 
 ### 🎯 Supported AI Assistants
@@ -387,13 +385,13 @@ async def use_ward():
 
 ### 🔧 Advanced MCP Configuration
 
-#### Claude Desktop Configuration
+#### Claude Desktop/Claude Code Configuration
 ```json
 {
   "mcpServers": {
     "ward-security": {
-      "command": "python3",
-      "args": ["/Users/username/.ward/mcp/mcp_server.py"],
+      "command": "uvx",
+      "args": ["git+https://github.com/yamonco/ward.git", "ward-mcp-server"],
       "description": "Ward Security System - AI Assistant Protection"
     }
   }
@@ -464,13 +462,9 @@ ward-mcp info
 ```bash
 # Update Ward
 uv tool install --force "git+https://github.com/yamonco/ward.git[mcp]"
-# or
-pip install --upgrade "git+https://github.com/yamonco/ward.git[mcp]"
 
 # Uninstall Ward
-uv tool uninstall ward
-# or
-pip uninstall ward-security
+uv tool uninstall ward-security
 ```
 
 ## 🚀 Getting Started with AI
