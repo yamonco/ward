@@ -94,20 +94,51 @@ cd ward
 ./install.sh
 ```
 
-### 📦 Package Installation (UVX Only)
+### 📦 Package Installation
+
+Choose your preferred installation method:
+
+#### 🔧 **UV (Permanent Installation)** - Recommended for Daily Use
 ```bash
-# Install with UVX (recommended)
+# Install permanently with UV (system-wide)
 uv tool install "git+https://github.com/yamonco/ward.git[mcp]"
 
-# Add Ward to Claude Desktop/Claude Code with UVX
+# Commands available immediately after installation
+ward --version
+ward status
+ward init
+
+# 🎯 Permanent Installation Benefits:
+# ✅ Commands available immediately from PATH
+# ✅ Fast execution (no re-download)
+# ✅ Persistent across shell sessions
+# ✅ Ideal for daily development
+```
+
+#### ⚡ **UVX (Temporary/On-demand)** - Great for Testing
+```bash
+# Run on-demand with UVX (no installation)
+uvx --from git+https://github.com/yamonco/ward.git ward --version
+uvx --from git+https://github.com/yamonco/ward.git ward status
+uvx --from git+https://github.com/yamonco/ward.git ward init
+
+# 🎯 UVX Usage Benefits:
+# ✅ No system changes required
+# ✅ Always latest version
+# ✅ Isolated from other tools
+# ✅ Perfect for CI/CD and testing
+```
+
+#### 🤖 **MCP Integration**
+```bash
+# UV (Permanent) - Automatic MCP setup
+uv tool install "git+https://github.com/yamonco/ward.git[mcp]"
+ward-mcp add --target claude-code
+ward-mcp add --target claude-desktop
+
+# UVX (Temporary) - Manual MCP setup
 uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-code
 uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-desktop
-
-# Test Ward installation with UVX
-uvx --from git+https://github.com/yamonco/ward.git ward check .
-
-# Initialize Ward in current directory
-uvx --from git+https://github.com/yamonco/ward.git ward init
 ```
 
 ### 🏗️ Local Development Installation
@@ -141,39 +172,105 @@ ward --version
 
 ## 🏁 Quick Start with AI
 
-### Step 1: Initialize AI-Safe Environment
+Choose your preferred installation method:
+
+### 🔧 **Method 1: UV Permanent Installation** (Recommended)
+
+#### Step 1: Install Ward Permanently
+```bash
+# Install Ward with MCP support permanently
+uv tool install "git+https://github.com/yamonco/ward.git[mcp]"
+
+# 🎯 UV Benefits:
+# ✅ Commands available immediately: ward, ward-mcp, ward-mcp-server
+# ✅ Fast execution - no download delays
+# ✅ Persistent across all shell sessions
+# ✅ Perfect for daily development work
+```
+
+#### Step 2: Create AI-Safe Environment
 ```bash
 # Create AI-ready project
 mkdir ai-secure-project
 cd ai-secure-project
 
-# Set up AI-friendly policies automatically with UVX
+# Set up AI-friendly policies
+ward init
+
+# Verify AI safety setup
+ward status
+```
+
+#### Step 3: Configure AI Integration
+```bash
+# Configure Claude Desktop/Claude Code for AI integration
+ward-mcp add --target claude-code
+ward-mcp add --target claude-desktop
+
+# Check MCP installation status
+ward-mcp status
+
+# 🛡️ Ward Environment Activation (Optional)
+ward activate  # Adds 🛡️ to your prompt for visual indication
+```
+
+---
+
+### ⚡ **Method 2: UVX Temporary Usage** (Testing/CI)
+
+#### Step 1: Run Ward On-Demand
+```bash
+# Create AI-ready project
+mkdir ai-secure-project
+cd ai-secure-project
+
+# Set up AI-friendly policies with UVX (no installation)
 uvx --from git+https://github.com/yamonco/ward.git ward init
 
 # Verify AI safety setup
 uvx --from git+https://github.com/yamonco/ward.git ward status
+
+# 🎯 UVX Benefits:
+# ✅ No system changes required
+# ✅ Always gets the latest version
+# ✅ Isolated from other tools
+# ✅ Perfect for CI/CD and testing environments
 ```
 
-### Step 2: Start AI Collaboration
+#### Step 2: Configure AI Integration
 ```bash
-# Check policies for current directory
-uvx --from git+https://github.com/yamonco/ward.git ward check
-
-# Configure Claude Desktop/Claude Code for AI integration
-uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-desktop
+# Configure Claude Desktop/Claude Code
 uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-code
+uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-desktop
 
-# Check MCP installation status
+# Check MCP status
 uvx --from git+https://github.com/yamonco/ward.git ward-mcp status
 ```
 
-### Step 3: AI Assistant Integration
-```bash
-# Claude, Copilot, and ChatGPT can now work safely within Ward's boundaries
-# AI assistants automatically receive guidance about allowed operations
+---
 
-# Test the CLI interface
-uvx --from git+https://github.com/yamonco/ward.git ward help
+### 🤖 **Step 4: Start AI Collaboration**
+```bash
+# Check policies for current directory
+ward check  # UV installed
+# OR
+uvx --from git+https://github.com/yamonco/ward.git ward check  # UVX
+
+# Your AI assistant now works within Ward's security boundaries!
+# Claude, Copilot, and ChatGPT automatically receive guidance about allowed operations
+```
+
+### 🛡️ **Visual Distinction with Prompt Enhancement**
+```bash
+# Activate Ward environment for visual prompt distinction
+ward activate
+
+# Your prompt changes:
+# Before: user@hostname:~/project$
+# After:  🛡️ user@hostname:~/project$
+
+# Deactivate when done
+ward deactivate
 ```
 
 ## 🤖 AI Assistant Integration Examples
@@ -312,36 +409,55 @@ MCP allows AI assistants to:
 
 ### 🚀 Quick MCP Setup
 
-#### Step 1: Install Ward with MCP Support
+#### 🔧 **Option 1: UV Permanent Installation**
 ```bash
-# Install Ward with MCP integration using UVX
+# Install Ward with MCP integration permanently
 uv tool install "git+https://github.com/yamonco/ward.git[mcp]"
 
-# This automatically installs:
-# ✅ MCP server
-# ✅ Required Python dependencies (mcp, fastmcp)
-# ✅ Ward CLI tools for AI management
+# 🎯 What gets installed:
+# ✅ Ward CLI (ward, ward-mcp, ward-mcp-server)
+# ✅ MCP server for AI integration
+# ✅ Required dependencies (mcp, fastmcp)
+# ✅ Commands available immediately from PATH
+# ✅ Persistent across shell sessions
 ```
 
-#### Step 2: Configure Claude Desktop/Claude Code
+#### ⚡ **Option 2: UVX Temporary Usage**
 ```bash
-# Configure Claude Desktop with UVX
-uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-desktop
-
-# Configure Claude Code with UVX
-uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-code
-
-# Check installation status
+# Run Ward with MCP integration on-demand
 uvx --from git+https://github.com/yamonco/ward.git ward-mcp status
+
+# 🎯 UVX Benefits:
+# ✅ No installation required
+# ✅ Always latest version
+# ✅ Isolated execution
+# ✅ Perfect for testing and CI/CD
 ```
 
-#### Step 3: Verify MCP Integration
+#### 🤖 **Configure Claude Desktop/Claude Code**
+
+**UV (Permanent):**
 ```bash
-# Check MCP server status
+ward-mcp add --target claude-code
+ward-mcp add --target claude-desktop
+```
+
+**UVX (Temporary):**
+```bash
+uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-code
+uvx --from git+https://github.com/yamonco/ward.git ward-mcp add --target claude-desktop
+```
+
+#### ✅ **Verify MCP Integration**
+```bash
+# UV Installed
+ward-mcp status
+
+# UVX Temporary
 uvx --from git+https://github.com/yamonco/ward.git ward-mcp status
 
 # Show available MCP tools
-uvx --from git+https://github.com/yamonco/ward.git ward-mcp info
+ward-mcp info
 ```
 
 ### 🎯 Supported AI Assistants
@@ -459,13 +575,43 @@ ward-mcp info
 ```
 
 ### Package Management
+
+#### 🔧 **UV (Permanent Installation)**
 ```bash
-# Update Ward
+# Update to latest version
 uv tool install --force "git+https://github.com/yamonco/ward.git[mcp]"
 
-# Uninstall Ward
+# Uninstall completely
 uv tool uninstall ward-security
+
+# Check installed version
+ward --version
+
+# List installed UV tools
+uv tool list | grep ward
 ```
+
+#### ⚡ **UVX (Temporary Usage)**
+```bash
+# No update needed - always gets latest version
+# Just run the command to get latest features
+
+# Clean UVX cache (if needed)
+uvx --clear-cache
+
+# Run specific version (if needed)
+uvx --from git+https://github.com/yamonco/ward.git@v2.0.3 ward --version
+```
+
+#### 📊 **When to Choose Which Method**
+
+| Use Case | Recommendation | Why |
+|---------|--------------|-----|
+| **Daily Development** | **UV Permanent** | Fast execution, persistent, convenient |
+| **CI/CD Pipelines** | **UVX Temporary** | No installation, always latest, isolated |
+| **Testing/Trying** | **UVX Temporary** | Clean environment, easy cleanup |
+| **Team Setup** | **UV Permanent** | Consistent environment, easy management |
+| **Single Project** | **Either** | Depends on your workflow preference |
 
 ## 🚀 Getting Started with AI
 
