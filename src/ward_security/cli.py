@@ -24,7 +24,7 @@ class WardCLI:
 
     def __init__(self):
         self.ward_root = Path(__file__).parent.parent.parent
-        self.ward_cli_path = self.ward_root / ".ward" / "ward-cli.sh"
+        self.ward_cli_path = self.ward_root / ".ward" / "ward.sh"
         self.ward_home = Path.home() / ".ward"
         self.mcp_server_path = self.ward_home / "mcp" / "mcp_server.py"
         self.favorites = WardFavorites()
@@ -72,10 +72,26 @@ class WardCLI:
             description="Ward Security System - AI-powered terminal protection"
         )
 
+        # Read version from pyproject.toml
+        version = "2.0.3"  # Will be updated during build
+        try:
+            try:
+                import tomllib
+            except ImportError:
+                import tomli as tomllib
+
+            pyproject_path = Path(__file__).parent.parent.parent / "pyproject.toml"
+            if pyproject_path.exists():
+                with open(pyproject_path, "rb") as f:
+                    pyproject = tomllib.load(f)
+                    version = pyproject["project"]["version"]
+        except (ImportError, FileNotFoundError, KeyError):
+            pass
+
         parser.add_argument(
             "--version",
             action="version",
-            version="Ward Security v2.0.0"
+            version=f"Ward Security v{version}"
         )
 
         parser.add_argument(
