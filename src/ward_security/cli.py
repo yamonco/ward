@@ -166,6 +166,20 @@ class WardCLI:
         elif args.command == "validate":
             return self.run_ward_command(["validate"])
         elif args.command == "check":
+            # Check if .ward file exists in target directory
+            target_path = Path(args.path).resolve()
+            ward_file = target_path / ".ward"
+
+            if not ward_file.exists():
+                print(f"❌ No .ward policy found in {args.path}")
+                print()
+                print("💡 Initialize Ward first:")
+                print(f"   ward init {args.path}")
+                print()
+                print("Or initialize in current directory:")
+                print("   ward init")
+                return 1
+
             return self.run_ward_command(["check", args.path])
         elif args.command == "mcp-status":
             return self.mcp_status()

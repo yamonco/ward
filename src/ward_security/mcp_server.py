@@ -109,6 +109,23 @@ async def list_tools() -> List[Tool]:
             }
         ),
         Tool(
+            name="ward_init",
+            description="Initialize Ward security policies in a directory",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "Directory path to initialize (default: current directory)"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Custom description for the Ward policy"
+                    }
+                }
+            }
+        ),
+        Tool(
             name="ward_validate",
             description="Validate all Ward security policies",
             inputSchema={
@@ -450,6 +467,22 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
     try:
         if name == "ward_check":
             path = arguments.get("path", ".")
+
+            # Check if .ward file exists in target directory
+            from pathlib import Path
+            target_path = Path(path).resolve()
+            ward_file = target_path / ".ward"
+
+            if not ward_file.exists():
+                response = f"❌ No .ward policy found in {path}\n\n"
+                response += "💡 Initialize Ward first:\n"
+                response += f"   ward_init {path}\n\n"
+                response += "Or initialize in current directory:\n"
+                response += "   ward_init\n\n"
+                response += "Then check policies again:"
+                response += f"   ward_check {path}"
+                return [TextContent(type="text", text=response)]
+
             result = ward_bridge.run_ward_command(["check", path])
             return [TextContent(type="text", text=result["output"] or result["error"])]
 
@@ -512,6 +545,56 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                 response += f"\n⚠️ Validation warnings:\n{result['error']}"
 
             return [TextContent(type="text", text=response)]
+
+        elif name == "ward_init":
+            path = arguments.get("path", ".")
+            description = arguments.get("description", "AI-Assisted Development Project")
+
+            # Convert to absolute path
+            from pathlib import Path
+            target_path = Path(path).resolve()
+            ward_file = target_path / ".ward"
+
+            # Check if .ward already exists
+            if ward_file.exists():
+                response = f"⚠️ Ward policy already exists in {path}\n\n"
+                response += f"📁 Ward file: {ward_file}\n"
+                response += "Use 'ward_check' to verify current policies"
+                return [TextContent(type="text", text=response)]
+
+            # Create directory if it doesn't exist
+            target_path.mkdir(parents=True, exist_ok=True)
+
+            # Create basic .ward file content
+            ward_content = f"""# Ward Security Configuration
+@description: {description}
+@whitelist: ls cat pwd echo grep sed awk git python npm node code vim
+@blacklist: rm -rf / sudo su chmod chown docker kubectl
+@allow_comments: true
+@max_comments: 5
+@comment_prompt: "Explain changes from a security perspective"
+"""
+
+            # Write .ward file
+            try:
+                with open(ward_file, 'w') as f:
+                    f.write(ward_content)
+
+                response = f"✅ Ward security policy initialized!\n\n"
+                response += f"📍 Location: {path}\n"
+                response += f"📁 Policy file: {ward_file}\n"
+                response += f"📝 Description: {description}\n\n"
+                response += "📋 Policy Summary:\n"
+                response += "  ✅ Allowed: ls cat pwd echo grep sed awk git python npm node code vim\n"
+                response += "  ❌ Blocked: rm -rf / sudo su chmod chown docker kubectl\n\n"
+                response += "🔍 Check policies with: ward_check " + path
+
+                return [TextContent(type="text", text=response)]
+
+            except Exception as e:
+                response = f"❌ Failed to initialize Ward in {path}\n\n"
+                response += f"Error: {str(e)}"
+                return [TextContent(type="text", text=response)]
 
         elif name == "ward_favorites_list":
             favorites = ward_favorites.get_favorites()
