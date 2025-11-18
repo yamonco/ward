@@ -238,6 +238,8 @@ install_with_uv() {
                         print_warning "Claude MCP configuration failed. Run manually: uvx git+https://github.com/yamonco/ward.git ward-mcp add"
                     fi
                 fi
+            else
+                print_warning "UVX not found. Install UVX for automatic MCP integration: pip install uvx"
             fi
 
             return 0

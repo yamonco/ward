@@ -158,8 +158,8 @@ class MCPInstaller:
             click.echo(f"Error: Could not save config: {e}", err=True)
             return False
 
-    def add_ward_mcp_server(self, use_uvx: bool = True, target: str = "claude-desktop") -> bool:
-        """Add Ward MCP server to configuration"""
+    def add_ward_mcp_server(self, target: str = "claude-desktop") -> bool:
+        """Add Ward MCP server to configuration using UVX"""
         target_name = "Claude Desktop" if target == "claude-desktop" else "Claude Code"
 
         # Create backup
@@ -170,21 +170,8 @@ class MCPInstaller:
         # Load existing config
         config = self._load_existing_config(target)
 
-        # Determine executable command
-        if use_uvx:
-            # Use uvx to run ward-mcp
-            executable_command = ["uvx", "git+https://github.com/yamonco/ward.git", "python", "-m", "ward_security.mcp_server"]
-        else:
-            # Use local installation
-            ward_executable = self._get_ward_executable()
-            if not ward_executable:
-                click.echo("Error: Ward MCP server not found. Install with:", err=True)
-                click.echo("  uv tool install git+https://github.com/yamonco/ward.git", err=True)
-                click.echo("or", err=True)
-                click.echo("  pip install git+https://github.com/yamonco/ward.git", err=True)
-                return False
-
-            executable_command = [str(ward_executable)]
+        # Use uvx to run Ward MCP server
+        executable_command = ["uvx", "git+https://github.com/yamonco/ward.git", "ward-mcp-server"]
 
         # Add Ward server configuration
         ward_config = {
@@ -430,17 +417,16 @@ def cli():
 
 
 @cli.command()
-@click.option('--uvx/--no-uvx', default=True, help='Use UVX to run Ward MCP server')
 @click.option('--target', type=click.Choice(['claude-desktop', 'claude-code']),
               default='claude-desktop', help='Target application for MCP integration')
-def add(uvx, target):
-    """Add Ward MCP server to Claude Desktop or Claude Code"""
+def add(target):
+    """Add Ward MCP server to Claude Desktop or Claude Code using UVX"""
     installer = MCPInstaller()
     target_name = "Claude Desktop" if target == "claude-desktop" else "Claude Code"
 
-    click.echo(f"🚀 Adding Ward MCP server to {target_name}...")
+    click.echo(f"🚀 Adding Ward MCP server to {target_name} using UVX...")
 
-    if installer.add_ward_mcp_server(use_uvx=uvx, target=target):
+    if installer.add_ward_mcp_server(target=target):
         click.echo()
         click.echo("🎉 Installation completed successfully!")
     else:

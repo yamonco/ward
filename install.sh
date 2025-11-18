@@ -167,10 +167,10 @@ with open('$config_file', 'r') as f:
 if 'mcpServers' not in config:
     config['mcpServers'] = {}
 
-# Add Ward MCP server
+# Add Ward MCP server using UVX
 config['mcpServers']['ward-security'] = {
-    'command': 'uvx' if command -v uvx >/dev/null 2>&1 else 'ward-mcp-server',
-    'args': ['git+https://github.com/yamonco/ward.git', 'python', '-m', 'ward_security.mcp_server'] if command -v uvx >/dev/null 2>&1 else [],
+    'command': 'uvx',
+    'args': ['git+https://github.com/yamonco/ward.git', 'ward-mcp-server'],
     'description': 'Ward Security System - AI-powered terminal protection'
 }
 
@@ -184,7 +184,7 @@ with open('$temp_config', 'w') as f:
   "mcpServers": {
     "ward-security": {
       "command": "uvx",
-      "args": ["git+https://github.com/yamonco/ward.git", "python", "-m", "ward_security.mcp_server"],
+      "args": ["git+https://github.com/yamonco/ward.git", "ward-mcp-server"],
       "description": "Ward Security System - AI-powered terminal protection"
     }
   }
