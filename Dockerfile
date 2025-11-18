@@ -1,7 +1,7 @@
 # Ward Security System Docker Image
 FROM ubuntu:22.04
 
-LABEL maintainer="yamonco <dev@yamonco.com>"
+LABEL maintainer="yamon <yamon@yamonco.io>"
 LABEL description="Ward Security System - Enterprise file system protection"
 LABEL version="2.0.0"
 
@@ -40,8 +40,9 @@ COPY setup-ward.sh ./
 # Make scripts executable
 RUN chmod +x setup-ward.sh
 
-# Copy Python wrapper
+# Copy Python wrapper and configuration
 COPY src/ src/
+COPY pyproject.toml ./
 RUN pip3 install -e .
 
 # Set ownership
