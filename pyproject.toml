@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ward-security"
-version = "2.0.1"
+version = "2.0.2"
 description = "Ward Security System - Enterprise file system protection with AI integration"
 readme = "README.md"
 license = {file = "LICENSE"}
