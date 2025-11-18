@@ -242,7 +242,7 @@ node_modules/
 .yarn/
 .pip-cache/
 
-# Large binary files
+# Large binary files (excluding images)
 *.tar.gz
 *.zip
 *.rar

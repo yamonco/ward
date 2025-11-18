@@ -1,5 +1,9 @@
 # Ward Security System
 
+<p align="center">
+  <img src="assets/ward.png" alt="Ward Security System" width="200"/>
+</p>
+
 [![CI/CD](https://github.com/yamonco/ward/workflows/CI%2FCD/badge.svg)](https://github.com/yamonco/ward/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker Pulls](https://img.shields.io/docker/pulls/yamonco/ward.svg)](https://hub.docker.com/r/yamonco/ward)
