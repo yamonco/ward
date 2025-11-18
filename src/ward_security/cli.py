@@ -142,7 +142,7 @@ class WardCLI:
         # Ward management
         plant_parser = subparsers.add_parser("plant", help="Plant a Ward (protection)")
         plant_parser.add_argument("path", help="Path to protect")
-        plant_parser.add_argument("description", nargs="*", help="Description")
+        plant_parser.add_argument("description", nargs="*", help="Description (optional - if not provided, creates description-only Ward with all permissions)")
 
         info_parser = subparsers.add_parser("info", help="Get Ward information")
         info_parser.add_argument("path", help="Path to check")
@@ -548,8 +548,13 @@ class WardCLI:
 
     def handle_plant_command(self, args) -> int:
         """Handle plant command"""
-        description = " ".join(args.description) if args.description else ""
-        return self.plant_ward_cli(args.path, description)
+        if args.description:
+            description = " ".join(args.description)
+            return self.plant_ward_cli(args.path, description)
+        else:
+            # No description provided - create a default description-only Ward
+            default_description = f"이 폴더는 건드리면 안된다"
+            return self.plant_ward_cli(args.path, default_description)
 
     def handle_ward_info_command(self, args) -> int:
         """Handle info command"""
