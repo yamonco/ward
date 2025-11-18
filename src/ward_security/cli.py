@@ -11,6 +11,7 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
+import re
 
 # Import favorites functionality
 import sys
@@ -65,6 +66,289 @@ class WardCLI:
         except Exception as e:
             print(f"Error running MCP server: {e}", file=sys.stderr)
             return 1
+
+    def handle_interactive_mode(self) -> int:
+        """Handle interactive mode with conversational interface"""
+        print("🛡️ Ward Security System - Interactive Mode")
+        print("=" * 50)
+        print("👋 안녕하세요! Ward 도우미입니다. 무엇을 도와드릴까요?")
+        print("📝 자연어로 말씀하시거나, 메뉴 번호를 선택하세요.")
+        print("🚪 '종료', 'exit', 'quit' 또는 'q'를 입력하면 나갈 수 있습니다.")
+        print()
+
+        while True:
+            current_dir = Path.cwd()
+            ward_status = "🛡️ 활성화" if (current_dir / ".ward").exists() else "⚪ 비활성화"
+
+            print(f"📍 현재 위치: {current_dir} ({ward_status})")
+            print()
+            print("🎯 **선택지:**")
+            print("1. 🌱 현재 위치 보호하기 (Ward 설치)")
+            print("2. 🔒 폴더 잠그기")
+            print("3. 🔓 폴더 잠금 해제")
+            print("4. 📝 코멘트 추가")
+            print("5. ℹ️ 현재 상태 확인")
+            print("6. 🔄 다른 위치로 이동")
+            print("7. ❓ 도움말")
+            print("0. 🚪 종료")
+            print()
+
+            try:
+                user_input = input("💬 입력: ").strip()
+
+                # 종료 명령 확인
+                if user_input.lower() in ['종료', 'exit', 'quit', 'q', '0']:
+                    print("👋 안녕히 가세요!")
+                    break
+
+                # 메뉴 번호 처리
+                if user_input.isdigit():
+                    choice = int(user_input)
+                    if choice == 1:
+                        self._interactive_plant_ward()
+                    elif choice == 2:
+                        self._interactive_lock_directory()
+                    elif choice == 3:
+                        self._interactive_unlock_directory()
+                    elif choice == 4:
+                        self._interactive_add_comment()
+                    elif choice == 5:
+                        self._interactive_check_status()
+                    elif choice == 6:
+                        self._interactive_change_directory()
+                    elif choice == 7:
+                        self._interactive_show_help()
+                    else:
+                        print("❌ 잘못된 번호입니다. 다시 선택해주세요.")
+                    continue
+
+                # 자연어 처리
+                self._process_natural_language(user_input)
+
+            except KeyboardInterrupt:
+                print("\n👋 안녕히 가세요!")
+                break
+            except EOFError:
+                print("\n👋 안녕히 가세요!")
+                break
+
+        return 0
+
+    def _interactive_plant_ward(self):
+        """대화형으로 Ward 설치"""
+        print("\n🌱 **현재 위치 보호하기**")
+        print("=" * 30)
+
+        description = input("📝 설명 (없으면 엔터): ").strip()
+        if not description:
+            description = "이 폴더는 건드리면 안된다"
+
+        print(f"📍 위치: {Path.cwd()}")
+        print(f"📝 설명: {description}")
+
+        confirm = input("✅ 이대로 설치할까요? (y/n): ").strip().lower()
+        if confirm in ['y', 'yes', '예', '네']:
+            result = self.plant_ward_cli(".", description)
+            if result == 0:
+                print("✅ 성공적으로 설치되었습니다!")
+                self.ward_info_cli(".")
+            else:
+                print("❌ 설치에 실패했습니다.")
+        else:
+            print("❌ 취소되었습니다.")
+
+    def _interactive_lock_directory(self):
+        """대화형으로 디렉토리 잠그기"""
+        print("\n🔒 **폴더 잠그기**")
+        print("=" * 30)
+
+        path = input(f"📍 경로 (현재: {Path.cwd()}): ").strip()
+        if not path:
+            path = "."
+
+        message = input("📝 잠금 메시지: ").strip()
+        if not message:
+            message = "이곳은 잠겨있습니다"
+
+        print(f"📍 위치: {path}")
+        print(f"📝 메시지: {message}")
+
+        confirm = input("🔒 이대로 잠글까요? (y/n): ").strip().lower()
+        if confirm in ['y', 'yes', '예', '네']:
+            result = self.plant_ward_cli(path, f"🔒 LOCKED: {message}")
+            if result == 0:
+                print("✅ 성공적으로 잠겼습니다!")
+                self.ward_info_cli(path)
+            else:
+                print("❌ 잠그기에 실패했습니다.")
+        else:
+            print("❌ 취소되었습니다.")
+
+    def _interactive_unlock_directory(self):
+        """대화형으로 디렉토리 잠금 해제"""
+        print("\n🔓 **폴더 잠금 해제**")
+        print("=" * 30)
+
+        path = input(f"📍 경로 (현재: {Path.cwd()}): ").strip()
+        if not path:
+            path = "."
+
+        message = input("📝 허용 메시지: ").strip()
+        if not message:
+            message = "이곳은 이제 안전합니다"
+
+        print(f"📍 위치: {path}")
+        print(f"📝 메시지: {message}")
+
+        confirm = input("🔓 이대로 잠금 해제할까요? (y/n): ").strip().lower()
+        if confirm in ['y', 'yes', '예', '네']:
+            result = self.plant_ward_cli(path, f"🔓 UNLOCKED: {message}")
+            if result == 0:
+                print("✅ 성공적으로 잠금 해제되었습니다!")
+                self.ward_info_cli(path)
+            else:
+                print("❌ 잠금 해제에 실패했습니다.")
+        else:
+            print("❌ 취소되었습니다.")
+
+    def _interactive_add_comment(self):
+        """대화형으로 코멘트 추가"""
+        print("\n📝 **코멘트 추가**")
+        print("=" * 30)
+
+        comment = input("💬 코멘트 내용: ").strip()
+        if not comment:
+            print("❌ 코멘트 내용을 입력해주세요.")
+            return
+
+        print(f"📍 위치: {Path.cwd()}")
+        print(f"💬 코멘트: {comment}")
+
+        confirm = input("✅ 이대로 추가할까요? (y/n): ").strip().lower()
+        if confirm in ['y', 'yes', '예', '네']:
+            comment_file = Path.cwd() / ".ward_comment.txt"
+            try:
+                with open(comment_file, 'w', encoding='utf-8') as f:
+                    f.write(f"💬 Comment: {comment}\n")
+                    f.write(f"📅 Added: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                    f.write(f"👤 By: Interactive User\n")
+                print("✅ 코멘트가 추가되었습니다!")
+                print(f"📍 위치: {comment_file}")
+            except Exception as e:
+                print(f"❌ 코멘트 추가 실패: {e}")
+        else:
+            print("❌ 취소되었습니다.")
+
+    def _interactive_check_status(self):
+        """대화형으로 상태 확인"""
+        print("\nℹ️ **현재 상태 확인**")
+        print("=" * 30)
+        self.ward_info_cli(".")
+
+    def _interactive_change_directory(self):
+        """대화형으로 디렉토리 변경"""
+        print("\n🔄 **디렉토리 변경**")
+        print("=" * 30)
+
+        new_path = input(f"📍 새 경로 (현재: {Path.cwd()}): ").strip()
+        if new_path:
+            try:
+                os.chdir(new_path)
+                print(f"✅ {Path.cwd()}로 이동했습니다.")
+            except Exception as e:
+                print(f"❌ 이동 실패: {e}")
+
+    def _interactive_show_help(self):
+        """대화형 도움말 표시"""
+        print("\n❓ **도움말**")
+        print("=" * 30)
+        print("🎯 **자연어 명령어 예시:**")
+        print("• '여기 잠가줘' - 현재 위치 잠그기")
+        print("• '보호해줘' - Ward 설치")
+        print("• '코멘트 남겨줘' - 코멘트 추가")
+        print("• '상태 확인' - 현재 상태 보기")
+        print("• '이동해줘' - 디렉토리 변경")
+        print()
+        print("🚪 **종료 명령어:**")
+        print("• '종료', 'exit', 'quit', 'q', '0'")
+        print()
+        print("💡 **팁:**")
+        print("• 항상 현재 위치를 보여줍니다")
+        print("• 자연어로 편하게 대화하세요")
+        print("• 확인 절차가 있어 안전합니다")
+
+    def _process_natural_language(self, user_input: str):
+        """자연어 입력 처리"""
+        user_input_lower = user_input.lower()
+
+        # 잠금 관련 키워드
+        if any(keyword in user_input_lower for keyword in ['잠가', '잠금', 'lock', '잠그']):
+            message = user_input  # 전체 입력을 메시지로 사용
+            if not message:
+                message = "사용자 요청으로 잠금"
+            result = self.plant_ward_cli(".", f"🔒 LOCKED: {message}")
+            if result == 0:
+                print("✅ 잠겼습니다!")
+                self.ward_info_cli(".")
+            else:
+                print("❌ 잠그기 실패")
+
+        # 잠금 해제 관련 키워드
+        elif any(keyword in user_input_lower for keyword in ['풀어', '해제', 'unlock', '열어', '잠금해제']):
+            message = user_input  # 전체 입력을 메시지로 사용
+            if not message:
+                message = "사용자 요청으로 잠금 해제"
+            result = self.plant_ward_cli(".", f"🔓 UNLOCKED: {message}")
+            if result == 0:
+                print("✅ 잠금 해제되었습니다!")
+                self.ward_info_cli(".")
+            else:
+                print("❌ 잠금 해제 실패")
+
+        # 보호/설치 관련 키워드
+        elif any(keyword in user_input_lower for keyword in ['보호', '설치', '만들어', 'plant', 'seed', 'seedling']):
+            description = user_input if user_input else "사용자 요청으로 보호"
+            result = self.plant_ward_cli(".", description)
+            if result == 0:
+                print("✅ 보호 설정되었습니다!")
+                self.ward_info_cli(".")
+            else:
+                print("❌ 보호 설정 실패")
+
+        # 코멘트 관련 키워드
+        elif any(keyword in user_input_lower for keyword in ['코멘트', 'comment', '메모', '남겨', '추가해']):
+            comment_file = Path.cwd() / ".ward_comment.txt"
+            try:
+                with open(comment_file, 'w', encoding='utf-8') as f:
+                    f.write(f"💬 Comment: {user_input}\n")
+                    f.write(f"📅 Added: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                    f.write(f"👤 By: Interactive User\n")
+                print("✅ 코멘트 추가되었습니다!")
+            except Exception as e:
+                print(f"❌ 코멘트 추가 실패: {e}")
+
+        # 상태 확인 관련 키워드
+        elif any(keyword in user_input_lower for keyword in ['상태', 'status', '확인', '보여', '어떻게']):
+            print("\nℹ️ 현재 상태:")
+            self.ward_info_cli(".")
+
+        # 이동 관련 키워드
+        elif any(keyword in user_input_lower for keyword in ['이동', '가', 'goto', 'change']):
+            # 경로 추출 시도
+            path_match = re.search(r'["\'\s]+([^"\']+)["\'\s]*$', user_input)
+            if path_match:
+                new_path = path_match.group(1).strip()
+                try:
+                    os.chdir(new_path)
+                    print(f"✅ {Path.cwd()}로 이동했습니다.")
+                except Exception as e:
+                    print(f"❌ 이동 실패: {e}")
+            else:
+                print("📍 이동할 경로를 알려주세요: '이동해줘 /path/to/folder'")
+
+        else:
+            print("❌ 이해하지 못했습니다. 다른 방식으로 말씀해주세요.")
+            print("💡 도움말을 보려면 '도움말' 또는 'help'를 입력하세요")
 
     def main(self) -> int:
         """Main CLI entry point - simplified interface"""
@@ -195,6 +479,9 @@ class WardCLI:
         subparsers.add_parser("activate", help="Activate Ward environment with prompt enhancement")
         subparsers.add_parser("deactivate", help="Deactivate Ward environment and restore prompt")
 
+        # Interactive mode
+        subparsers.add_parser("interactive", help="Start interactive Ward management mode")
+
         # Help and version
         subparsers.add_parser("help", help="Show this help message")
 
@@ -203,7 +490,12 @@ class WardCLI:
         # Handle commands
         if args.command == "mcp-server":
             return self.run_mcp_server()
-        elif args.command == "status" or args.command is None:
+        elif args.command == "interactive":
+            return self.handle_interactive_mode()
+        elif args.command is None:
+            # Default to interactive mode when no command provided
+            return self.handle_interactive_mode()
+        elif args.command == "status":
             return self.handle_status_command()
         elif args.command == "validate":
             return self.handle_validate_command()
