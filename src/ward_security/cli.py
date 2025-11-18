@@ -1508,8 +1508,12 @@ echo "🔧 Use 'ward deactivate' to return to normal terminal"
         return 0
 
     def handle_init_command(self, args) -> int:
-        """Handle init command with legacy installation warnings"""
+        """Handle init command with shell selection and legacy installation warnings"""
         path = args.path or "."
+
+        # Import shell detection modules
+        from .shell_detector import ShellDetector
+        from .shell_selector import ShellSelector
 
         # Check for legacy installations and warn user
         legacy_ward = Path.home() / ".ward"
@@ -1539,10 +1543,50 @@ echo "🔧 Use 'ward deactivate' to return to normal terminal"
             print(f"❌ .ward file already exists in {path}")
             return 1
 
-        # Create basic .ward file content
+        # Initialize shell detection
+        shell_detector = ShellDetector()
+        shell_selector = ShellSelector()
+
+        # Detect current shell
+        detected_shell = shell_detector.detect_current_shell()
+        print(f"🔍 Detected shell: {detected_shell}")
+
+        # Get available shells
+        available_shells = shell_detector.get_available_shells()
+
+        # Shell selection
+        selected_shell = None
+        interactive = getattr(args, 'interactive', True)
+
+        if interactive and sys.stdout.isatty():
+            selected_shell = shell_selector.display_shell_menu(available_shells, detected_shell)
+        else:
+            selected_shell = shell_selector.simple_selection(available_shells, detected_shell)
+
+        if not selected_shell:
+            print("❌ Shell selection cancelled or invalid")
+            return 1
+
+        print(f"✅ Selected shell: {selected_shell}")
+
+        # Create shell configuration
+        shell_config = shell_detector.create_shell_config(selected_shell)
+        theme = shell_config.shell_theme
+
+        print(f"🎨 Detected theme: {theme}")
+
+        # Save shell configuration
+        if shell_detector.save_configuration(shell_config):
+            print("✅ Shell configuration saved")
+        else:
+            print("⚠️  Warning: Could not save shell configuration")
+
+        # Create basic .ward file content with shell information
         description = getattr(args, 'description', 'AI-Assisted Development Project')
         ward_content = f"""# Ward Security Configuration
 @description: {description}
+@shell: {selected_shell}
+@theme: {theme}
 @whitelist: ls cat pwd echo grep sed awk git python npm node code vim
 @blacklist: rm -rf / sudo su chmod chown docker kubectl
 @allow_comments: true
@@ -1557,8 +1601,30 @@ echo "🔧 Use 'ward deactivate' to return to normal terminal"
         print(f"✅ Ward initialized in {path}")
         print(f"📁 Policy file: {ward_file}")
         print()
+
+        # Provide shell-specific activation instructions
+        print("🚀 Ward is ready to use!")
+        print()
+        print("🔧 Activation Commands:")
+        if selected_shell == "zsh":
+            print("   source ~/.ward-activate.sh    # Activate Ward in ZSH")
+            print("   ward activate                  # CLI activation (if available)")
+        elif selected_shell == "bash":
+            print("   source ~/.ward-activate.sh    # Activate Ward in Bash")
+            print("   ward activate                  # CLI activation (if available)")
+        elif selected_shell == "fish":
+            print("   source ~/.ward-activate.fish  # Activate Ward in Fish")
+            print("   ward activate                  # CLI activation (if available)")
+        else:
+            print("   source ~/.ward-activate.sh    # Activate Ward")
+            print("   ward activate                  # CLI activation (if available)")
+
+        print()
         print("💡 Tip: Use UV-installed Ward for best experience:")
         print("   export PATH=\"$HOME/.local/share/uv/tools/ward-security/bin:$PATH\"")
+        print()
+        print("⚙️  To change shell configuration later:")
+        print("   ward config shell                 # Reconfigure shell settings")
         return 0
 
 def main() -> int:
