@@ -882,7 +882,7 @@ def main():
 
     async def run_server():
         async with stdio_server() as (read_stream, write_stream):
-            await app.run(read_stream, write_stream)
+            await app.run(read_stream, write_stream, {})
 
     asyncio.run(run_server())
 
